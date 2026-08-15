@@ -5,7 +5,6 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-
 def create_silence_file(path: Path, *, duration_ms: int, sample_rate: str) -> None:
     command = [
         "ffmpeg",
@@ -78,7 +77,11 @@ def concatenate_mp3_files(
 
 
 def build_final_audio(
-    episode: dict[str, Any], output_dir: Path, final_output_path: Path
+    episode: dict[str, Any],
+    output_dir: Path,
+    final_output_path: Path,
+    *,
+    assets_dir: Path,
 ) -> None:
     audio_config = episode["audio"]
     output_format = audio_config.get("outputFormat", "mp3")
@@ -87,12 +90,13 @@ def build_final_audio(
     pauses = {
         "speaker": pause_config.get("betweenSpeakersMs", 350),
         "translation": pause_config.get("betweenTranslationMs", 500),
+        "conversation": pause_config.get("beforeConversationMs", 1000),
         "section": pause_config.get("betweenSectionsMs", 1200),
     }
     work_dir = output_dir / ".work"
     work_dir.mkdir(parents=True, exist_ok=True)
     silence = {
-        name: work_dir / f"silence_{duration}ms.mp3"
+        name: work_dir / f"silence_{sample_rate}_{duration}ms.mp3"
         for name, duration in pauses.items()
     }
     for name, path in silence.items():
@@ -117,7 +121,15 @@ def build_final_audio(
     concatenate_mp3_files(english, section1, sample_rate=sample_rate)
     concatenate_mp3_files(bilingual, section2, sample_rate=sample_rate)
     concatenate_mp3_files(
-        [section1, silence["section"], section2],
+        [
+            assets_dir / "speech_introduction.mp3",
+            silence["conversation"],
+            section1,
+            silence["section"],
+            assets_dir / "speech_both_en_ja.mp3",
+            silence["conversation"],
+            section2,
+        ],
         final_output_path,
         sample_rate=sample_rate,
     )

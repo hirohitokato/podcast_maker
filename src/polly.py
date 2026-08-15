@@ -11,23 +11,10 @@ from typing import Any
 
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError
-from dotenv import load_dotenv
 
 from .episode import apply_japanese_rate, get_voice_config
 
 MAX_LEXICONS_PER_LANGUAGE = 5
-PROJECT_DIR = Path(__file__).resolve().parents[2]
-
-
-def load_environment() -> None:
-    load_dotenv(dotenv_path=PROJECT_DIR / ".env", override=True)
-
-    required = ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION"]
-    missing = [name for name in required if not os.getenv(name)]
-    if missing:
-        raise RuntimeError(
-            "Missing required environment variables: " + ", ".join(missing)
-        )
 
 
 def create_aws_session() -> boto3.Session:

@@ -2,16 +2,29 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
 from botocore.exceptions import BotoCoreError, ClientError
+from dotenv import load_dotenv
 
 from .audio import build_final_audio
-from .episode import load_episode
-from .polly import PROJECT_DIR, generate_dialogue_audio, load_environment
+from .episode import load_episode, load_settings
+from .polly import generate_dialogue_audio
 
 DEFAULT_OUTPUT_DIR = "output"
+PROJECT_DIR = Path(__file__).resolve().parents[1]
+
+
+def load_environment() -> None:
+    load_dotenv(dotenv_path=PROJECT_DIR / ".env", override=True)
+    required = ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION"]
+    missing = [name for name in required if not os.getenv(name)]
+    if missing:
+        raise RuntimeError(
+            "Missing required environment variables: " + ", ".join(missing)
+        )
 
 
 def parse_args() -> argparse.Namespace:
@@ -51,9 +64,11 @@ def main() -> int:
     try:
         load_environment()
         episode = load_episode(args.input)
+        episode["audio"] = load_settings(PROJECT_DIR / "settings.jsonc")["audio"]
+        assets_dir = PROJECT_DIR / "assets"
         rule_paths = [
             *[(rule if rule.is_absolute() else Path.cwd() / rule) for rule in args.pls],
-            PROJECT_DIR / "assets" / "aws-terms-ja.pls",
+            assets_dir / "aws-terms-ja.pls",
         ]
         rule_paths = list(dict.fromkeys(path.resolve() for path in rule_paths))
         generate_dialogue_audio(
@@ -63,6 +78,7 @@ def main() -> int:
             episode,
             args.output,
             args.output / (args.final_name or f"{args.input.stem}.mp3"),
+            assets_dir=assets_dir,
         )
     except (
         FileNotFoundError,

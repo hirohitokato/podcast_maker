@@ -1,0 +1,35 @@
+{
+  "audio": {
+    "provider": "amazon-polly",
+    "outputFormat": "mp3",
+    "sampleRate": "24000",
+    "voices": {
+      "emma": {
+        "languageCode": "en-US",
+        "voiceId": "Joanna",
+        "engine": "generative"
+      },
+      "daniel": {
+        "languageCode": "en-US",
+        "voiceId": "Matthew",
+        "engine": "generative"
+      },
+      "ja": {
+        "languageCode": "ja-JP",
+        "voiceId": "Takumi",
+        "engine": "neural"
+      }
+    },
+    "profiles": {
+      "normal": { "rate": "100%" },
+      "slow": { "rate": "85%" },
+      "ja": { "rate": "110%" }
+    },
+    "pause": {
+      "betweenSpeakersMs": 350,
+      "betweenTranslationMs": 500,
+      "beforeConversationMs": 1000,
+      "betweenSectionsMs": 2000
+    }
+  }
+}
