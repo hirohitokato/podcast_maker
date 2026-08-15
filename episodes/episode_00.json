@@ -1,0 +1,790 @@
+{
+  "episode": 1,
+  "title": "Building a Photo-Sharing App at a Café",
+  "scene": "Two software engineers talking at a café on a Saturday afternoon",
+  "level": "CEFR B1-B2",
+
+  "aws_services": [
+    "Amazon S3",
+    "Amazon CloudFront",
+    "Amazon API Gateway",
+    "AWS Lambda",
+    "Amazon DynamoDB"
+  ],
+
+  "audio": {
+    "provider": "amazon-polly",
+    "region": "ap-northeast-1",
+    "outputFormat": "mp3",
+    "sampleRate": "24000",
+
+    "voices": {
+      "emma": {
+        "languageCode": "en-US",
+        "voiceId": "Joanna",
+        "engine": "generative"
+      },
+      "daniel": {
+        "languageCode": "en-US",
+        "voiceId": "Matthew",
+        "engine": "generative"
+      },
+      "ja": {
+        "languageCode": "ja-JP",
+        "voiceId": "Takumi",
+        "engine": "neural"
+      }
+    },
+
+    "profiles": {
+      "normal": {
+        "rate": "100%"
+      },
+      "slow": {
+        "rate": "85%"
+      }
+    },
+
+    "pause": {
+      "betweenSpeakersMs": 350,
+      "betweenTranslationMs": 500,
+      "betweenSectionsMs": 1200
+    }
+  },
+
+  "english_learning": {
+    "target_expressions": [
+      "That makes sense.",
+      "What if I also want to ...?",
+      "It depends on your requirements.",
+      "Wouldn't ... be better?",
+      "Let me see if I've got it.",
+      "You've got it."
+    ]
+  },
+
+  "dialogue": [
+    {
+      "id": "001",
+      "speaker": "emma",
+
+      "en": {
+        "text": "These photos from your trip look amazing.",
+        "ssml": "<speak><s>These photos from your trip look amazing.</s></speak>"
+      },
+
+      "ja": {
+        "text": "旅行の写真、すごくきれいだね。",
+        "ssml": "<speak><s>旅行の写真、すごくきれいだね。</s></speak>"
+      }
+    },
+
+    {
+      "id": "002",
+      "speaker": "emma",
+
+      "en": {
+        "text": "Did you take all of them with your phone?",
+        "ssml": "<speak><s>Did you take all of them with your phone?</s></speak>"
+      },
+
+      "ja": {
+        "text": "全部スマートフォンで撮ったの？",
+        "ssml": "<speak><s>全部スマートフォンで撮ったの？</s></speak>"
+      }
+    },
+
+    {
+      "id": "003",
+      "speaker": "daniel",
+
+      "en": {
+        "text": "Yeah. I took way too many, actually.",
+        "ssml": "<speak><s>Yeah.</s><break time=\"200ms\"/><s>I took way too many, actually.</s></speak>"
+      },
+
+      "ja": {
+        "text": "うん。実は、撮りすぎたくらいなんだ。",
+        "ssml": "<speak><s>うん。</s><break time=\"200ms\"/><s>実は、撮りすぎたくらいなんだ。</s></speak>"
+      }
+    },
+
+    {
+      "id": "004",
+      "speaker": "daniel",
+
+      "en": {
+        "text": "I was thinking about making a small website where my friends can see them.",
+        "ssml": "<speak><s>I was thinking about making a small website where my friends can see them.</s></speak>"
+      },
+
+      "ja": {
+        "text": "友達が写真を見られる小さなWebサイトを作ろうかと思っていて。",
+        "ssml": "<speak><s>友達が写真を見られる小さなWebサイトを作ろうかと思っていて。</s></speak>"
+      }
+    },
+
+    {
+      "id": "005",
+      "speaker": "emma",
+
+      "en": {
+        "text": "That sounds fun.",
+        "ssml": "<speak><s>That sounds fun.</s></speak>"
+      },
+
+      "ja": {
+        "text": "楽しそうだね。",
+        "ssml": "<speak><s>楽しそうだね。</s></speak>"
+      }
+    },
+
+    {
+      "id": "006",
+      "speaker": "emma",
+
+      "en": {
+        "text": "Are you going to upload everything to a web server?",
+        "ssml": "<speak><s>Are you going to upload everything to a web server?</s></speak>"
+      },
+
+      "ja": {
+        "text": "全部Webサーバーにアップロードするつもり？",
+        "ssml": "<speak><s>全部ウェブサーバーにアップロードするつもり？</s></speak>"
+      }
+    },
+
+    {
+      "id": "007",
+      "speaker": "daniel",
+      "awsConcept": "Amazon S3",
+
+      "en": {
+        "text": "I thought about it, but wouldn't Amazon S3 be better for the photos?",
+        "ssml": "<speak><s>I thought about it, but wouldn't Amazon <sub alias=\"S three\">S3</sub> be better for the photos?</s></speak>"
+      },
+
+      "ja": {
+        "text": "それも考えたけど、写真ならAmazon S3の方がよくない？",
+        "ssml": "<speak><s>それも考えたけど、写真なら Amazon S3 の方がよくない？</s></speak>"
+      }
+    },
+
+    {
+      "id": "008",
+      "speaker": "emma",
+
+      "en": {
+        "text": "Definitely.",
+        "ssml": "<speak><s>Definitely.</s></speak>"
+      },
+
+      "ja": {
+        "text": "そうだね。",
+        "ssml": "<speak><s>そうだね。</s></speak>"
+      }
+    },
+
+    {
+      "id": "009",
+      "speaker": "emma",
+      "awsConcept": "Amazon S3",
+
+      "en": {
+        "text": "S3 is a good fit for storing files like images and videos.",
+        "ssml": "<speak><s><sub alias=\"S three\">S3</sub> is a good fit for storing files like images and videos.</s></speak>"
+      },
+
+      "ja": {
+        "text": "S3は画像や動画のようなファイルを保存するのに適しているよ。",
+        "ssml": "<speak><s>S3は、画像や動画のようなファイルを保存するのに適しているよ。</s></speak>"
+      }
+    },
+
+    {
+      "id": "010",
+      "speaker": "emma",
+      "awsConcept": "Amazon S3",
+
+      "en": {
+        "text": "You don't need to manage a server just to keep the files.",
+        "ssml": "<speak><s>You don't need to manage a server just to keep the files.</s></speak>"
+      },
+
+      "ja": {
+        "text": "ファイルを保存するためだけにサーバーを管理する必要もないしね。",
+        "ssml": "<speak><s>ファイルを保存するためだけに、サーバーを管理する必要もないしね。</s></speak>"
+      }
+    },
+
+    {
+      "id": "011",
+      "speaker": "daniel",
+
+      "en": {
+        "text": "Right.",
+        "ssml": "<speak><s>Right.</s></speak>"
+      },
+
+      "ja": {
+        "text": "そうだね。",
+        "ssml": "<speak><s>そうだね。</s></speak>"
+      }
+    },
+
+    {
+      "id": "012",
+      "speaker": "daniel",
+
+      "en": {
+        "text": "But some of my friends live overseas.",
+        "ssml": "<speak><s>But some of my friends live overseas.</s></speak>"
+      },
+
+      "ja": {
+        "text": "でも友達の何人かは海外に住んでいるんだ。",
+        "ssml": "<speak><s>でも友達の何人かは海外に住んでいるんだ。</s></speak>"
+      }
+    },
+
+    {
+      "id": "013",
+      "speaker": "daniel",
+
+      "en": {
+        "text": "I don't want every image request to travel all the way to one AWS Region.",
+        "ssml": "<speak><s>I don't want every image request to travel all the way to one <sub alias=\"A W S\">AWS</sub> Region.</s></speak>"
+      },
+
+      "ja": {
+        "text": "画像のリクエストが毎回1つのAWSリージョンまで届くのは避けたいな。",
+        "ssml": "<speak><s>画像のリクエストが毎回ひとつの AWS リージョンまで届くのは避けたいな。</s></speak>"
+      }
+    },
+
+    {
+      "id": "014",
+      "speaker": "emma",
+      "awsConcept": "Amazon CloudFront",
+
+      "en": {
+        "text": "Then you could put Amazon CloudFront in front of S3.",
+        "ssml": "<speak><s>Then you could put Amazon CloudFront in front of <sub alias=\"S three\">S3</sub>.</s></speak>"
+      },
+
+      "ja": {
+        "text": "それならS3の前にAmazon CloudFrontを置けばいいよ。",
+        "ssml": "<speak><s>それなら S3 の前に Amazon CloudFront を置けばいいよ。</s></speak>"
+      }
+    },
+
+    {
+      "id": "015",
+      "speaker": "daniel",
+      "awsConcept": "Amazon CloudFront",
+
+      "en": {
+        "text": "CloudFront is the content delivery network, right?",
+        "ssml": "<speak><s>CloudFront is the content delivery network, right?</s></speak>"
+      },
+
+      "ja": {
+        "text": "CloudFrontってCDN、つまりコンテンツ配信ネットワークだよね？",
+        "ssml": "<speak><s>CloudFrontって、CDN、つまりコンテンツ配信ネットワークだよね？</s></speak>"
+      }
+    },
+
+    {
+      "id": "016",
+      "speaker": "emma",
+
+      "en": {
+        "text": "Exactly.",
+        "ssml": "<speak><s>Exactly.</s></speak>"
+      },
+
+      "ja": {
+        "text": "そのとおり。",
+        "ssml": "<speak><s>そのとおり。</s></speak>"
+      }
+    },
+
+    {
+      "id": "017",
+      "speaker": "emma",
+      "awsConcept": "Amazon CloudFront",
+
+      "en": {
+        "text": "It can cache your images closer to your users, so they can download them with lower latency.",
+        "ssml": "<speak><s>It can cache your images closer to your users,</s><break time=\"150ms\"/><s>so they can download them with lower latency.</s></speak>"
+      },
+
+      "ja": {
+        "text": "ユーザーに近い場所に画像をキャッシュできるから、より低いレイテンシーでダウンロードできるよ。",
+        "ssml": "<speak><s>ユーザーに近い場所に画像をキャッシュできるから、より低いレイテンシーでダウンロードできるよ。</s></speak>"
+      }
+    },
+
+    {
+      "id": "018",
+      "speaker": "daniel",
+
+      "en": {
+        "text": "That makes sense.",
+        "ssml": "<speak><s>That makes sense.</s></speak>"
+      },
+
+      "ja": {
+        "text": "なるほどね。",
+        "ssml": "<speak><s>なるほどね。</s></speak>"
+      }
+    },
+
+    {
+      "id": "019",
+      "speaker": "daniel",
+      "awsConcept": "Amazon S3 + Amazon CloudFront",
+
+      "en": {
+        "text": "So S3 stores the original files, and CloudFront delivers them efficiently.",
+        "ssml": "<speak><s>So <sub alias=\"S three\">S3</sub> stores the original files,</s><break time=\"150ms\"/><s>and CloudFront delivers them efficiently.</s></speak>"
+      },
+
+      "ja": {
+        "text": "つまり、S3が元のファイルを保存して、CloudFrontが効率よく配信するわけだ。",
+        "ssml": "<speak><s>つまり、S3が元のファイルを保存して、CloudFrontが効率よく配信するわけだ。</s></speak>"
+      }
+    },
+
+    {
+      "id": "020",
+      "speaker": "emma",
+
+      "en": {
+        "text": "Exactly.",
+        "ssml": "<speak><s>Exactly.</s></speak>"
+      },
+
+      "ja": {
+        "text": "そのとおり。",
+        "ssml": "<speak><s>そのとおり。</s></speak>"
+      }
+    },
+
+    {
+      "id": "021",
+      "speaker": "daniel",
+
+      "en": {
+        "text": "What if I also want people to leave comments on each photo?",
+        "ssml": "<speak><s>What if I also want people to leave comments on each photo?</s></speak>"
+      },
+
+      "ja": {
+        "text": "それぞれの写真にコメントも書けるようにしたい場合はどうかな？",
+        "ssml": "<speak><s>それぞれの写真にコメントも書けるようにしたい場合はどうかな？</s></speak>"
+      }
+    },
+
+    {
+      "id": "022",
+      "speaker": "emma",
+
+      "en": {
+        "text": "Then you'll need something more than S3 and CloudFront.",
+        "ssml": "<speak><s>Then you'll need something more than <sub alias=\"S three\">S3</sub> and CloudFront.</s></speak>"
+      },
+
+      "ja": {
+        "text": "それならS3とCloudFront以外のものも必要になるね。",
+        "ssml": "<speak><s>それなら S3 と CloudFront 以外のものも必要になるね。</s></speak>"
+      }
+    },
+
+    {
+      "id": "023",
+      "speaker": "daniel",
+
+      "en": {
+        "text": "A database?",
+        "ssml": "<speak><s>A database?</s></speak>"
+      },
+
+      "ja": {
+        "text": "データベース？",
+        "ssml": "<speak><s>データベース？</s></speak>"
+      }
+    },
+
+    {
+      "id": "024",
+      "speaker": "emma",
+      "awsConcept": "Amazon DynamoDB",
+
+      "en": {
+        "text": "Yes. DynamoDB could work well for something simple like photo comments.",
+        "ssml": "<speak><s>Yes.</s><break time=\"180ms\"/><s>DynamoDB could work well for something simple like photo comments.</s></speak>"
+      },
+
+      "ja": {
+        "text": "そう。写真へのコメントのようなシンプルな用途ならDynamoDBが使いやすいと思うよ。",
+        "ssml": "<speak><s>そう。</s><break time=\"180ms\"/><s>写真へのコメントのようなシンプルな用途なら、DynamoDBが使いやすいと思うよ。</s></speak>"
+      }
+    },
+
+    {
+      "id": "025",
+      "speaker": "daniel",
+      "awsConcept": "Amazon DynamoDB",
+
+      "en": {
+        "text": "Why DynamoDB instead of a relational database?",
+        "ssml": "<speak><s>Why DynamoDB instead of a relational database?</s></speak>"
+      },
+
+      "ja": {
+        "text": "どうしてリレーショナルデータベースじゃなくてDynamoDBなの？",
+        "ssml": "<speak><s>どうしてリレーショナルデータベースじゃなくてDynamoDBなの？</s></speak>"
+      }
+    },
+
+    {
+      "id": "026",
+      "speaker": "emma",
+
+      "en": {
+        "text": "It depends on your requirements.",
+        "ssml": "<speak><s>It depends on your requirements.</s></speak>"
+      },
+
+      "ja": {
+        "text": "要件次第だね。",
+        "ssml": "<speak><s>要件次第だね。</s></speak>"
+      }
+    },
+
+    {
+      "id": "027",
+      "speaker": "emma",
+      "awsConcept": "Amazon DynamoDB",
+
+      "en": {
+        "text": "But if your data model is simple and you mainly access comments by photo ID, DynamoDB can be a good choice.",
+        "ssml": "<speak><s>But if your data model is simple,</s><break time=\"120ms\"/><s>and you mainly access comments by photo I D,</s><break time=\"120ms\"/><s>DynamoDB can be a good choice.</s></speak>"
+      },
+
+      "ja": {
+        "text": "でもデータモデルが単純で、主に写真IDを使ってコメントを取得するなら、DynamoDBは良い選択肢になるよ。",
+        "ssml": "<speak><s>でもデータモデルが単純で、主に写真IDを使ってコメントを取得するなら、DynamoDBは良い選択肢になるよ。</s></speak>"
+      }
+    },
+
+    {
+      "id": "028",
+      "speaker": "daniel",
+      "awsConcept": "Amazon DynamoDB",
+
+      "en": {
+        "text": "Okay. But the browser shouldn't access DynamoDB directly, should it?",
+        "ssml": "<speak><s>Okay.</s><break time=\"180ms\"/><s>But the browser shouldn't access DynamoDB directly, should it?</s></speak>"
+      },
+
+      "ja": {
+        "text": "なるほど。でもブラウザからDynamoDBに直接アクセスするべきじゃないよね？",
+        "ssml": "<speak><s>なるほど。</s><break time=\"180ms\"/><s>でもブラウザからDynamoDBに直接アクセスするべきじゃないよね？</s></speak>"
+      }
+    },
+
+    {
+      "id": "029",
+      "speaker": "emma",
+
+      "en": {
+        "text": "Usually, no.",
+        "ssml": "<speak><s>Usually, no.</s></speak>"
+      },
+
+      "ja": {
+        "text": "普通はそうだね。",
+        "ssml": "<speak><s>普通はそうだね。</s></speak>"
+      }
+    },
+
+    {
+      "id": "030",
+      "speaker": "emma",
+      "awsConcept": "Amazon API Gateway + AWS Lambda",
+
+      "en": {
+        "text": "You could create an API with Amazon API Gateway and have it call Lambda functions.",
+        "ssml": "<speak><s>You could create an <sub alias=\"A P I\">API</sub> with Amazon <sub alias=\"A P I Gateway\">API Gateway</sub>,</s><break time=\"150ms\"/><s>and have it call Lambda functions.</s></speak>"
+      },
+
+      "ja": {
+        "text": "Amazon API GatewayでAPIを作って、そこからLambda関数を呼び出す方法があるよ。",
+        "ssml": "<speak><s>Amazon API GatewayでAPIを作って、そこからLambda関数を呼び出す方法があるよ。</s></speak>"
+      }
+    },
+
+    {
+      "id": "031",
+      "speaker": "daniel",
+      "awsConcept": "Amazon API Gateway + AWS Lambda + Amazon DynamoDB",
+
+      "en": {
+        "text": "So the browser sends a request to API Gateway, API Gateway invokes Lambda, and Lambda reads from or writes to DynamoDB?",
+        "ssml": "<speak><s>So the browser sends a request to <sub alias=\"A P I Gateway\">API Gateway</sub>,</s><break time=\"120ms\"/><s><sub alias=\"A P I Gateway\">API Gateway</sub> invokes Lambda,</s><break time=\"120ms\"/><s>and Lambda reads from or writes to DynamoDB?</s></speak>"
+      },
+
+      "ja": {
+        "text": "つまりブラウザがAPI Gatewayにリクエストを送って、API GatewayがLambdaを呼び出し、LambdaがDynamoDBを読み書きするの？",
+        "ssml": "<speak><s>つまりブラウザが API Gateway にリクエストを送って、</s><break time=\"100ms\"/><s>API Gateway が Lambda を呼び出し、</s><break time=\"100ms\"/><s>Lambda が DynamoDB を読み書きするの？</s></speak>"
+      }
+    },
+
+    {
+      "id": "032",
+      "speaker": "emma",
+
+      "en": {
+        "text": "That's the idea.",
+        "ssml": "<speak><s>That's the idea.</s></speak>"
+      },
+
+      "ja": {
+        "text": "そういうこと。",
+        "ssml": "<speak><s>そういうこと。</s></speak>"
+      }
+    },
+
+    {
+      "id": "033",
+      "speaker": "daniel",
+
+      "en": {
+        "text": "That sounds like a lot of AWS services for a photo website.",
+        "ssml": "<speak><s>That sounds like a lot of <sub alias=\"A W S\">AWS</sub> services for a photo website.</s></speak>"
+      },
+
+      "ja": {
+        "text": "写真サイトにしては、AWSサービスがずいぶん多く感じるね。",
+        "ssml": "<speak><s>写真サイトにしては、AWSサービスがずいぶん多く感じるね。</s></speak>"
+      }
+    },
+
+    {
+      "id": "034",
+      "speaker": "emma",
+
+      "en": {
+        "text": "It does when you list them all at once, but each one has a clear job.",
+        "ssml": "<speak><s>It does when you list them all at once,</s><break time=\"150ms\"/><s>but each one has a clear job.</s></speak>"
+      },
+
+      "ja": {
+        "text": "まとめて並べるとそう感じるけど、それぞれに明確な役割があるんだよ。",
+        "ssml": "<speak><s>まとめて並べるとそう感じるけど、それぞれに明確な役割があるんだよ。</s></speak>"
+      }
+    },
+
+    {
+      "id": "035",
+      "speaker": "daniel",
+      "awsConcept": "Amazon S3",
+
+      "en": {
+        "text": "Let me see if I've got it. S3 stores the photos.",
+        "ssml": "<speak><s>Let me see if I've got it.</s><break time=\"250ms\"/><s><sub alias=\"S three\">S3</sub> stores the photos.</s></speak>"
+      },
+
+      "ja": {
+        "text": "理解できたか確認させて。S3が写真を保存する。",
+        "ssml": "<speak><s>理解できたか確認させて。</s><break time=\"250ms\"/><s>S3が写真を保存する。</s></speak>"
+      }
+    },
+
+    {
+      "id": "036",
+      "speaker": "emma",
+
+      "en": {
+        "text": "Right.",
+        "ssml": "<speak><s>Right.</s></speak>"
+      },
+
+      "ja": {
+        "text": "そう。",
+        "ssml": "<speak><s>そう。</s></speak>"
+      }
+    },
+
+    {
+      "id": "037",
+      "speaker": "daniel",
+      "awsConcept": "Amazon CloudFront",
+
+      "en": {
+        "text": "CloudFront delivers the photos.",
+        "ssml": "<speak><s>CloudFront delivers the photos.</s></speak>"
+      },
+
+      "ja": {
+        "text": "CloudFrontが写真を配信する。",
+        "ssml": "<speak><s>CloudFrontが写真を配信する。</s></speak>"
+      }
+    },
+
+    {
+      "id": "038",
+      "speaker": "emma",
+
+      "en": {
+        "text": "Right.",
+        "ssml": "<speak><s>Right.</s></speak>"
+      },
+
+      "ja": {
+        "text": "そう。",
+        "ssml": "<speak><s>そう。</s></speak>"
+      }
+    },
+
+    {
+      "id": "039",
+      "speaker": "daniel",
+      "awsConcept": "Amazon API Gateway",
+
+      "en": {
+        "text": "API Gateway receives API requests.",
+        "ssml": "<speak><s><sub alias=\"A P I Gateway\">API Gateway</sub> receives <sub alias=\"A P I\">API</sub> requests.</s></speak>"
+      },
+
+      "ja": {
+        "text": "API GatewayがAPIリクエストを受け取る。",
+        "ssml": "<speak><s>API GatewayがAPIリクエストを受け取る。</s></speak>"
+      }
+    },
+
+    {
+      "id": "040",
+      "speaker": "emma",
+
+      "en": {
+        "text": "Yes.",
+        "ssml": "<speak><s>Yes.</s></speak>"
+      },
+
+      "ja": {
+        "text": "うん。",
+        "ssml": "<speak><s>うん。</s></speak>"
+      }
+    },
+
+    {
+      "id": "041",
+      "speaker": "daniel",
+      "awsConcept": "AWS Lambda",
+
+      "en": {
+        "text": "Lambda runs the application logic.",
+        "ssml": "<speak><s>Lambda runs the application logic.</s></speak>"
+      },
+
+      "ja": {
+        "text": "Lambdaがアプリケーションのロジックを実行する。",
+        "ssml": "<speak><s>Lambdaがアプリケーションのロジックを実行する。</s></speak>"
+      }
+    },
+
+    {
+      "id": "042",
+      "speaker": "emma",
+
+      "en": {
+        "text": "Exactly.",
+        "ssml": "<speak><s>Exactly.</s></speak>"
+      },
+
+      "ja": {
+        "text": "そのとおり。",
+        "ssml": "<speak><s>そのとおり。</s></speak>"
+      }
+    },
+
+    {
+      "id": "043",
+      "speaker": "daniel",
+      "awsConcept": "Amazon DynamoDB",
+
+      "en": {
+        "text": "And DynamoDB stores things like comments and photo metadata.",
+        "ssml": "<speak><s>And DynamoDB stores things like comments and photo metadata.</s></speak>"
+      },
+
+      "ja": {
+        "text": "そしてDynamoDBがコメントや写真のメタデータなどを保存する。",
+        "ssml": "<speak><s>そしてDynamoDBが、コメントや写真のメタデータなどを保存する。</s></speak>"
+      }
+    },
+
+    {
+      "id": "044",
+      "speaker": "emma",
+
+      "en": {
+        "text": "You've got it.",
+        "ssml": "<speak><s>You've got it.</s></speak>"
+      },
+
+      "ja": {
+        "text": "完璧。",
+        "ssml": "<speak><s>完璧。</s></speak>"
+      }
+    },
+
+    {
+      "id": "045",
+      "speaker": "daniel",
+
+      "en": {
+        "text": "Nice. I might actually build this.",
+        "ssml": "<speak><s>Nice.</s><break time=\"180ms\"/><s>I might actually build this.</s></speak>"
+      },
+
+      "ja": {
+        "text": "いいね。本当に作ってみようかな。",
+        "ssml": "<speak><s>いいね。</s><break time=\"180ms\"/><s>本当に作ってみようかな。</s></speak>"
+      }
+    },
+
+    {
+      "id": "046",
+      "speaker": "emma",
+
+      "en": {
+        "text": "Just don't spend three weeks designing the architecture before uploading your first photo.",
+        "ssml": "<speak><s>Just don't spend three weeks designing the architecture before uploading your first photo.</s></speak>"
+      },
+
+      "ja": {
+        "text": "最初の写真をアップロードする前に、アーキテクチャ設計だけで3週間使わないようにね。",
+        "ssml": "<speak><s>最初の写真をアップロードする前に、アーキテクチャ設計だけで3週間使わないようにね。</s></speak>"
+      }
+    },
+
+    {
+      "id": "047",
+      "speaker": "daniel",
+
+      "en": {
+        "text": "No promises.",
+        "ssml": "<speak><s>No promises.</s></speak>"
+      },
+
+      "ja": {
+        "text": "約束はできないな。",
+        "ssml": "<speak><s>約束はできないな。</s></speak>"
+      }
+    }
+  ]
+}
