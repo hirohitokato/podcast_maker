@@ -5,6 +5,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+
 def create_silence_file(path: Path, *, duration_ms: int, sample_rate: str) -> None:
     command = [
         "ffmpeg",
@@ -76,6 +77,92 @@ def concatenate_mp3_files(
         list_file.unlink(missing_ok=True)
 
 
+def _audio_duration(path: Path) -> float:
+    result = subprocess.run(
+        [
+            "ffprobe",
+            "-v",
+            "error",
+            "-show_entries",
+            "format=duration",
+            "-of",
+            "default=noprint_wrappers=1:nokey=1",
+            str(path),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        raise RuntimeError("Failed to read audio duration:\n" + result.stderr)
+    return float(result.stdout.strip())
+
+
+def _background_volume_expression(segments: list[tuple[float, float]]) -> str:
+    terms: list[str] = []
+    start = 0.0
+    for index, (duration, volume) in enumerate(segments):
+        end = start + duration
+        if index == len(segments) - 1:
+            fade_start = end - 2
+            terms.extend(
+                [
+                    f"{volume}*between(t\\,{start}\\,{fade_start})",
+                    f"{volume}*({end}-t)/2*between(t\\,{fade_start}\\,{end})",
+                ]
+            )
+        else:
+            terms.append(f"{volume}*between(t\\,{start}\\,{end})")
+        start = end
+    return "+".join(terms)
+
+
+def mix_background_music(
+    foreground_path: Path,
+    output_path: Path,
+    background_path: Path,
+    volume_paths: list[tuple[Path, float]],
+    *,
+    sample_rate: str,
+) -> None:
+    if not background_path.exists():
+        raise FileNotFoundError(f"Audio file not found: {background_path}")
+
+    duration = _audio_duration(foreground_path)
+    segments = [(_audio_duration(path), volume) for path, volume in volume_paths]
+    segments[-1] = (5.0, segments[-1][1])
+    volume = _background_volume_expression(segments)
+    result = subprocess.run(
+        [
+            "ffmpeg",
+            "-y",
+            "-stream_loop",
+            "-1",
+            "-i",
+            str(background_path),
+            "-i",
+            str(foreground_path),
+            "-filter_complex",
+            (
+                f"[0:a]atrim=duration={duration},volume=volume='{volume}':eval=frame[bg];"
+                "[1:a][bg]amix=inputs=2:duration=shortest:normalize=0[a]"
+            ),
+            "-map",
+            "[a]",
+            "-codec:a",
+            "libmp3lame",
+            "-ar",
+            sample_rate,
+            "-ac",
+            "1",
+            str(output_path),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        raise RuntimeError("FFmpeg failed to mix background music:\n" + result.stderr)
+
+
 def build_final_audio(
     episode: dict[str, Any],
     output_dir: Path,
@@ -92,6 +179,8 @@ def build_final_audio(
         "translation": pause_config.get("betweenTranslationMs", 500),
         "conversation": pause_config.get("beforeConversationMs", 1000),
         "section": pause_config.get("betweenSectionsMs", 1200),
+        "opening": 3000,
+        "closing": 5000,
     }
     work_dir = output_dir / ".work"
     work_dir.mkdir(parents=True, exist_ok=True)
@@ -118,19 +207,32 @@ def build_final_audio(
 
     section1 = work_dir / "section_01_en_normal.mp3"
     section2 = work_dir / "section_02_en_ja.mp3"
+    introduction = assets_dir / "speech_introduction.mp3"
+    bilingual_introduction = assets_dir / "speech_both_en_ja.mp3"
     concatenate_mp3_files(english, section1, sample_rate=sample_rate)
     concatenate_mp3_files(bilingual, section2, sample_rate=sample_rate)
+    foreground = work_dir / "final_foreground.mp3"
+    volume_paths = [
+        (silence["opening"], 0.5),
+        (introduction, 0.3),
+        (silence["conversation"], 0.3),
+        (section1, 0.1),
+        (silence["section"], 0.2),
+        (bilingual_introduction, 0.3),
+        (silence["conversation"], 0.3),
+        (section2, 0.1),
+        (silence["closing"], 0.5),
+    ]
     concatenate_mp3_files(
-        [
-            assets_dir / "speech_introduction.mp3",
-            silence["conversation"],
-            section1,
-            silence["section"],
-            assets_dir / "speech_both_en_ja.mp3",
-            silence["conversation"],
-            section2,
-        ],
+        [path for path, _ in volume_paths],
+        foreground,
+        sample_rate=sample_rate,
+    )
+    mix_background_music(
+        foreground,
         final_output_path,
+        assets_dir / "Kuru_kuru_world.mp3",
+        volume_paths,
         sample_rate=sample_rate,
     )
     print(

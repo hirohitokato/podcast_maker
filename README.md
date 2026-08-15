@@ -15,3 +15,7 @@ Edit `settings.jsonc` to change shared Polly voices, speech rates, and pause dur
 ## Requirements
 
 `ffmpeg` must be available on `PATH` to build the final MP3.
+
+## License
+
+- The file([`assets/Kuru_Kuru_world.mp3`](assets/Kuru_Kuru_world.mp3)) is downloaded from "[Kuru kuru world written by 蒲鉾さちこ](https://dova-s.jp/bgm/detail/23745)".
