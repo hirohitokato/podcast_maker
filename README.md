@@ -11,6 +11,7 @@ Create `.env` from `.env.example` and set AWS credentials.
 ## Configuration
 
 Edit `settings.jsonc` to change shared Polly voices, speech rates, and pause durations for every episode.
+Set `audio.backgroundMusic` there, or override it for one run with `--bgm path/to/music.mp3`.
 
 ## Requirements
 

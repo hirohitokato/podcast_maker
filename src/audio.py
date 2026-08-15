@@ -169,6 +169,7 @@ def build_final_audio(
     final_output_path: Path,
     *,
     assets_dir: Path,
+    background_music_path: Path,
 ) -> None:
     audio_config = episode["audio"]
     output_format = audio_config.get("outputFormat", "mp3")
@@ -231,7 +232,7 @@ def build_final_audio(
     mix_background_music(
         foreground,
         final_output_path,
-        assets_dir / "Kuru_kuru_world.mp3",
+        background_music_path,
         volume_paths,
         sample_rate=sample_rate,
     )

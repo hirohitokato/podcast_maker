@@ -52,6 +52,12 @@ def parse_args() -> argparse.Namespace:
         help="Ignore audio cache and regenerate all Polly audio files",
     )
     parser.add_argument(
+        "--bgm",
+        type=Path,
+        default=None,
+        help="Background music file. Overrides audio.backgroundMusic in settings.jsonc.",
+    )
+    parser.add_argument(
         "--final-name",
         default=None,
         help="Filename for the combined MP3. Default: <episode-json-stem>.mp3",
@@ -66,6 +72,18 @@ def main() -> int:
         episode = load_episode(args.input)
         episode["audio"] = load_settings(PROJECT_DIR / "settings.jsonc")["audio"]
         assets_dir = PROJECT_DIR / "assets"
+        configured_bgm = episode["audio"].get("backgroundMusic")
+        if args.bgm:
+            background_music_path = args.bgm if args.bgm.is_absolute() else Path.cwd() / args.bgm
+        elif isinstance(configured_bgm, str):
+            configured_path = Path(configured_bgm)
+            background_music_path = (
+                configured_path
+                if configured_path.is_absolute()
+                else PROJECT_DIR / configured_path
+            )
+        else:
+            raise ValueError("audio.backgroundMusic must be configured in settings.jsonc")
         rule_paths = [
             *[(rule if rule.is_absolute() else Path.cwd() / rule) for rule in args.pls],
             assets_dir / "aws-terms-ja.pls",
@@ -79,6 +97,7 @@ def main() -> int:
             args.output,
             args.output / (args.final_name or f"{args.input.stem}.mp3"),
             assets_dir=assets_dir,
+            background_music_path=background_music_path,
         )
     except (
         FileNotFoundError,

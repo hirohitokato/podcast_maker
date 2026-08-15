@@ -3,6 +3,7 @@
     "provider": "amazon-polly",
     "outputFormat": "mp3",
     "sampleRate": "24000",
+    "backgroundMusic": "assets/Kuru_kuru_world.mp3",
     "voices": {
       "emma": {
         "languageCode": "en-US",

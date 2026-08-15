@@ -43,7 +43,11 @@ class AudioTests(unittest.TestCase):
                 patch.object(audio, "mix_background_music") as mix,
             ):
                 audio.build_final_audio(
-                    episode, output_dir, output_dir / "final.mp3", assets_dir=assets_dir
+                    episode,
+                    output_dir,
+                    output_dir / "final.mp3",
+                    assets_dir=assets_dir,
+                    background_music_path=background,
                 )
 
             work_dir = output_dir / ".work"
