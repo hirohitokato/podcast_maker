@@ -1,0 +1,223 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/episode.schema.json",
+  "title": "AWS English Podcast Episode",
+  "description": "Schema for an AWS English-learning podcast episode consumed by main.py.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "episode",
+    "title",
+    "scene",
+    "level",
+    "aws_services",
+    "audio",
+    "dialogue"
+  ],
+  "properties": {
+    "episode": {
+      "type": ["integer", "string"],
+      "description": "Episode identifier."
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scene": {
+      "type": "string",
+      "minLength": 1
+    },
+    "level": {
+      "type": "string",
+      "minLength": 1
+    },
+    "aws_services": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "english_learning": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "target_expressions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "audio": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["voices"],
+      "properties": {
+        "provider": {
+          "type": "string"
+        },
+        "region": {
+          "type": "string"
+        },
+        "outputFormat": {
+          "type": "string",
+          "enum": ["mp3", "ogg_vorbis", "pcm", "json"],
+          "default": "mp3"
+        },
+        "sampleRate": {
+          "type": "string",
+          "pattern": "^[0-9]+$",
+          "default": "24000"
+        },
+        "voices": {
+          "type": "object",
+          "minProperties": 3,
+          "required": ["emma", "daniel", "ja"],
+          "additionalProperties": {
+            "$ref": "#/$defs/voiceConfig"
+          },
+          "properties": {
+            "emma": {
+              "$ref": "#/$defs/voiceConfig"
+            },
+            "daniel": {
+              "$ref": "#/$defs/voiceConfig"
+            },
+            "ja": {
+              "$ref": "#/$defs/voiceConfig"
+            }
+          }
+        },
+        "profiles": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "rate": {
+                "type": "string",
+                "pattern": "^[0-9]+%$"
+              }
+            }
+          },
+          "properties": {
+            "ja": {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "rate": {
+                  "type": "string",
+                  "pattern": "^[0-9]+%$",
+                  "default": "110%"
+                }
+              }
+            }
+          }
+        },
+        "pause": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "betweenSpeakersMs": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 350
+            },
+            "betweenTranslationMs": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 500
+            },
+            "betweenSectionsMs": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 1200
+            }
+          }
+        }
+      }
+    },
+    "dialogue": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/dialogueLine"
+      }
+    }
+  },
+  "$defs": {
+    "voiceConfig": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["voiceId", "engine"],
+      "properties": {
+        "languageCode": {
+          "type": "string",
+          "minLength": 2
+        },
+        "voiceId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "engine": {
+          "type": "string",
+          "enum": ["standard", "neural", "long-form", "generative"]
+        }
+      }
+    },
+    "localizedUtterance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text", "ssml"],
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ssml": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^\\s*<speak>[\\s\\S]*</speak>\\s*$"
+        }
+      }
+    },
+    "dialogueLine": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["id", "speaker", "en", "ja"],
+      "properties": {
+        "id": {
+          "type": ["string", "integer"],
+          "description": "Dialogue sequence identifier. main.py zero-pads this value for filenames."
+        },
+        "speaker": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Must match a key under audio.voices for English synthesis."
+        },
+        "awsConcept": {
+          "type": "string"
+        },
+        "vocabulary": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "en": {
+          "$ref": "#/$defs/localizedUtterance"
+        },
+        "ja": {
+          "$ref": "#/$defs/localizedUtterance"
+        }
+      }
+    }
+  }
+}

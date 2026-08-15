@@ -4,9 +4,11 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +17,7 @@ from botocore.exceptions import BotoCoreError, ClientError
 from dotenv import load_dotenv
 
 DEFAULT_OUTPUT_DIR = "output"
+MAX_LEXICONS_PER_LANGUAGE = 5
 
 
 def load_environment() -> None:
@@ -83,6 +86,20 @@ def get_voice_config(episode: dict[str, Any], voice_key: str) -> dict[str, str]:
     return config
 
 
+def apply_japanese_rate(ssml: str, audio_config: dict[str, Any]) -> str:
+    profiles = audio_config.get("profiles", {})
+    rate = profiles.get("ja", {}).get("rate", "110%")
+
+    if not isinstance(rate, str) or not re.fullmatch(r"[0-9]+%", rate):
+        raise ValueError("audio.profiles.ja.rate must be a percentage")
+    if "<speak>" not in ssml or "</speak>" not in ssml:
+        raise ValueError("Japanese SSML must contain a <speak> root element")
+
+    return ssml.replace(
+        "<speak>", f'<speak><prosody rate="{rate}">', 1
+    ).replace("</speak>", "</prosody></speak>", 1)
+
+
 def create_cache_key(
     *,
     ssml: str,
@@ -91,6 +108,7 @@ def create_cache_key(
     output_format: str,
     sample_rate: str,
     language_code: str | None,
+    lexicon_cache_tokens: list[str],
 ) -> str:
     cache_data = {
         "ssml": ssml,
@@ -99,6 +117,7 @@ def create_cache_key(
         "outputFormat": output_format,
         "sampleRate": sample_rate,
         "languageCode": language_code,
+        "lexiconNames": sorted(lexicon_cache_tokens),
     }
     serialized = json.dumps(
         cache_data,
@@ -133,6 +152,151 @@ def save_cache_hash(audio_path: Path, cache_hash: str) -> None:
     get_hash_path(audio_path).write_text(cache_hash + "\n", encoding="utf-8")
 
 
+def _lexicon_name_from_path(path: Path) -> str:
+    """
+    Create a Polly-compatible lexicon name from a PLS file path.
+
+    Polly lexicon names must contain only ASCII letters/digits and be
+    at most 20 characters. A short SHA-256 suffix avoids collisions.
+    """
+    stem = re.sub(r"[^0-9A-Za-z]", "", path.stem)
+
+    if not stem:
+        stem = "lexicon"
+
+    digest = hashlib.sha256(str(path.resolve()).encode("utf-8")).hexdigest()[:6]
+
+    return f"{stem[:14]}{digest}"[:20]
+
+
+def _lexicon_language(content: str) -> str:
+    """
+    Read xml:lang from the root <lexicon> element of a PLS file.
+    """
+    try:
+        root = ET.fromstring(content)
+    except ET.ParseError as e:
+        raise ValueError(f"Invalid PLS/XML content: {e}") from e
+
+    if root.tag.rsplit("}", 1)[-1] != "lexicon":
+        raise ValueError("Invalid PLS/XML content: root element must be <lexicon>")
+
+    language_code = root.attrib.get("{http://www.w3.org/XML/1998/namespace}lang")
+    if not language_code:
+        raise ValueError("Invalid PLS/XML content: <lexicon> must have xml:lang")
+
+    return language_code
+
+
+def register_lexicons(
+    polly,
+    rule_paths: list[Path],
+) -> list[dict[str, str]]:
+    """
+    Upload PLS files to Amazon Polly using PutLexicon.
+    """
+    prepared: list[dict[str, str]] = []
+
+    for rule_path in rule_paths:
+        if not rule_path.exists():
+            raise FileNotFoundError(f"PLS rule file not found: {rule_path}")
+
+        if not rule_path.is_file():
+            raise ValueError(f"PLS rule path is not a file: {rule_path}")
+
+        content = rule_path.read_text(encoding="utf-8")
+
+        lexicon_name = _lexicon_name_from_path(rule_path)
+        language_code = _lexicon_language(content)
+        content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()
+
+        prepared.append(
+            {
+                "path": str(rule_path),
+                "name": lexicon_name,
+                "languageCode": language_code,
+                "cacheToken": f"{lexicon_name}:{content_hash}",
+                "content": content,
+            }
+        )
+
+    for language_code in {item["languageCode"] for item in prepared}:
+        count = sum(
+            item["languageCode"] == language_code for item in prepared
+        )
+        if count > MAX_LEXICONS_PER_LANGUAGE:
+            raise ValueError(
+                f"At most {MAX_LEXICONS_PER_LANGUAGE} PLS lexicons can be "
+                f"applied for language {language_code} (got {count})"
+            )
+
+    registered: list[dict[str, str]] = []
+    for lexicon in prepared:
+        print(
+            f"Registering Polly lexicon: {lexicon['path']} -> "
+            f"{lexicon['name']} ({lexicon['languageCode']})"
+        )
+        polly.put_lexicon(
+            Name=lexicon["name"],
+            Content=lexicon["content"],
+        )
+        registered.append(
+            {
+                key: lexicon[key]
+                for key in ("name", "languageCode", "cacheToken")
+            }
+        )
+
+    if registered:
+        print()
+
+    return registered
+
+
+def _applicable_lexicons(
+    lexicons: list[dict[str, str]],
+    language_code: str | None,
+) -> list[dict[str, str]]:
+    if not language_code:
+        return []
+
+    result: list[dict[str, str]] = []
+
+    for lexicon in lexicons:
+        lexicon_language = lexicon.get("languageCode")
+
+        if lexicon_language == language_code:
+            result.append(lexicon)
+
+    return result
+
+
+def lexicon_names_for_language(
+    lexicons: list[dict[str, str]],
+    language_code: str | None,
+) -> list[str]:
+    return [
+        str(item["name"])
+        for item in _applicable_lexicons(
+            lexicons,
+            language_code,
+        )
+    ]
+
+
+def lexicon_cache_tokens_for_language(
+    lexicons: list[dict[str, str]],
+    language_code: str | None,
+) -> list[str]:
+    return [
+        str(item["cacheToken"])
+        for item in _applicable_lexicons(
+            lexicons,
+            language_code,
+        )
+    ]
+
+
 def synthesize_line(
     polly,
     *,
@@ -142,6 +306,7 @@ def synthesize_line(
     output_format: str,
     sample_rate: str,
     language_code: str | None,
+    lexicon_names: list[str],
 ) -> bytes:
     request: dict[str, Any] = {
         "Engine": engine,
@@ -153,6 +318,9 @@ def synthesize_line(
     }
     if language_code:
         request["LanguageCode"] = language_code
+
+    if lexicon_names:
+        request["LexiconNames"] = lexicon_names
 
     response = polly.synthesize_speech(**request)
     audio_stream = response.get("AudioStream")
@@ -175,6 +343,8 @@ def ensure_audio_file(
     output_format: str,
     sample_rate: str,
     language_code: str | None,
+    lexicon_names: list[str],
+    lexicon_cache_tokens: list[str],
     force: bool,
 ) -> bool:
     cache_hash = create_cache_key(
@@ -184,6 +354,7 @@ def ensure_audio_file(
         output_format=output_format,
         sample_rate=sample_rate,
         language_code=language_code,
+        lexicon_cache_tokens=lexicon_cache_tokens,
     )
 
     if not force and is_cache_valid(output_path, cache_hash):
@@ -197,6 +368,7 @@ def ensure_audio_file(
         output_format=output_format,
         sample_rate=sample_rate,
         language_code=language_code,
+        lexicon_names=lexicon_names,
     )
     output_path.write_bytes(audio_bytes)
     save_cache_hash(output_path, cache_hash)
@@ -207,6 +379,7 @@ def generate_dialogue_audio(
     episode: dict[str, Any],
     output_dir: Path,
     *,
+    rule_paths: list[Path],
     force: bool = False,
 ) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -219,6 +392,11 @@ def generate_dialogue_audio(
     session = create_aws_session()
     verify_credentials(session)
     polly = session.client("polly")
+
+    registered_lexicons = register_lexicons(
+        polly,
+        rule_paths,
+    )
 
     japanese_voice = get_voice_config(episode, "ja")
     total_assets = len(dialogue) * 2
@@ -254,6 +432,14 @@ def generate_dialogue_audio(
                 output_format=output_format,
                 sample_rate=sample_rate,
                 language_code=english_voice.get("languageCode"),
+                lexicon_names=lexicon_names_for_language(
+                    registered_lexicons,
+                    english_voice.get("languageCode"),
+                ),
+                lexicon_cache_tokens=lexicon_cache_tokens_for_language(
+                    registered_lexicons,
+                    english_voice.get("languageCode"),
+                ),
                 force=force,
             )
             state = "GENERATED" if was_generated else "CACHED"
@@ -273,6 +459,7 @@ def generate_dialogue_audio(
         ja_ssml = japanese.get("ssml")
         if not ja_ssml:
             raise ValueError(f"Dialogue item {line_id} has no ja.ssml")
+        ja_ssml = apply_japanese_rate(ja_ssml, audio_config)
 
         ja_output_path = output_dir / f"{line_id}_ja_normal.{output_format}"
         asset_index += 1
@@ -287,6 +474,14 @@ def generate_dialogue_audio(
                 output_format=output_format,
                 sample_rate=sample_rate,
                 language_code=japanese_voice.get("languageCode"),
+                lexicon_names=lexicon_names_for_language(
+                    registered_lexicons,
+                    japanese_voice.get("languageCode"),
+                ),
+                lexicon_cache_tokens=lexicon_cache_tokens_for_language(
+                    registered_lexicons,
+                    japanese_voice.get("languageCode"),
+                ),
                 force=force,
             )
             state = "GENERATED" if was_generated else "CACHED"
@@ -507,6 +702,18 @@ def parse_args() -> argparse.Namespace:
         help=f"Output directory (default: {DEFAULT_OUTPUT_DIR})",
     )
     parser.add_argument(
+        "--pls",
+        action="append",
+        type=Path,
+        default=[],
+        help=(
+            "Additional Amazon Polly PLS pronunciation lexicon. "
+            "May be specified multiple times. "
+            "assets/aws-terms-ja.pls is always loaded automatically."
+        ),
+    )
+
+    parser.add_argument(
         "--force",
         action="store_true",
         help="Ignore audio cache and regenerate all Polly audio files",
@@ -526,9 +733,25 @@ def main() -> int:
         load_environment()
         episode = load_episode(args.input)
 
+        project_dir = Path(__file__).resolve().parent
+
+        mandatory_rules = project_dir / "assets" / "aws-terms-ja.pls"
+
+        rule_paths = [
+            *[
+                (rule if rule.is_absolute() else Path.cwd() / rule)
+                for rule in args.pls
+            ],
+            mandatory_rules,
+        ]
+
+        # Remove duplicate paths while preserving order.
+        rule_paths = list(dict.fromkeys(path.resolve() for path in rule_paths))
+
         generate_dialogue_audio(
             episode,
             args.output,
+            rule_paths=rule_paths,
             force=args.force,
         )
 
