@@ -1,4 +1,6 @@
 import io
+import json
+import subprocess
 import tempfile
 import unittest
 from contextlib import redirect_stdout
@@ -17,7 +19,12 @@ class AudioTests(unittest.TestCase):
                 "sampleRate": "24000",
                 "pause": {"beforeConversationMs": 1000, "betweenSectionsMs": 1200},
                 "foregroundVolume": {"dialogue": 0.25, "soundEffect": 0.5},
+                "albumName": "Test album",
+                "author": "Test author",
             },
+            "title": "Test title",
+            "scene": "Test scene",
+            "aws_services": ["S3", "Lambda"],
             "dialogue": [
                 {"id": "001", "speaker": "woman"},
                 {"id": "002", "speaker": "man"},
@@ -133,7 +140,13 @@ class AudioTests(unittest.TestCase):
 
     def test_reuses_shared_foreground_cache_when_inputs_are_unchanged(self) -> None:
         episode = {
-            "audio": {"outputFormat": "mp3", "sampleRate": "24000"},
+            "audio": {
+                "outputFormat": "mp3", "sampleRate": "24000",
+                "albumName": "Test album", "author": "Test author",
+            },
+            "title": "Test title",
+            "scene": "Test scene",
+            "aws_services": ["S3"],
             "dialogue": [{"id": "001", "speaker": "woman"}],
         }
         with tempfile.TemporaryDirectory() as directory:
@@ -216,6 +229,73 @@ class AudioTests(unittest.TestCase):
         for value in ("0.5", -0.1, float("inf"), True):
             with self.assertRaisesRegex(ValueError, "foregroundVolume.soundEffect"):
                 audio._foreground_volume({"foregroundVolume": {"soundEffect": value}}, "soundEffect", 0.5)
+
+    def test_episode_metadata_uses_config_and_episode_fields(self) -> None:
+        metadata = audio._episode_metadata(
+            {
+                "audio": {"albumName": "英会話でAWS!", "author": "Kato Hirohito"},
+                "title": "AWS会話",
+                "scene": "Two engineers talk.",
+                "aws_services": ["S3", "Lambda"],
+            }
+        )
+
+        self.assertEqual(
+            {
+                "TIT2": "AWS会話",
+                "TIT3": "Two engineers talk.",
+                "TALB": "英会話でAWS!",
+                "TCON": "Speech",
+                "TPE2": "Kato Hirohito",
+                "COMM": "軽快な英会話を通じてS3、Lambdaについて学びます。",
+                "TPUB": "Podcast Maker by Hirohito Kato",
+                "WOAR": "https://github.com/hirohitokato/podcast_maker",
+            },
+            metadata,
+        )
+
+    def test_mix_replaces_bgm_metadata(self) -> None:
+        metadata = {
+            "TIT2": "AWS会話", "TIT3": "Two engineers talk.", "TALB": "英会話でAWS!",
+            "TCON": "Speech", "TPE2": "Kato Hirohito",
+            "COMM": "S3について学ぶ英会話コンテンツです。", "TPUB": "Podcast Maker",
+            "WOAR": "https://github.com/hirohitokato/podcast_maker",
+        }
+        assets = Path(__file__).parents[1] / "assets"
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "final.mp3"
+            audio.mix_background_music(
+                assets / "jingle.mp3",
+                output,
+                assets / "bgm.mp3",
+                [(assets / "jingle.mp3", 0.5)],
+                metadata=metadata,
+                sample_rate="24000",
+            )
+            tags = json.loads(
+                subprocess.run(
+                    ["ffprobe", "-v", "error", "-show_entries", "format_tags", "-of", "json", str(output)],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                ).stdout
+            )["format"]["tags"]
+            raw = output.read_bytes()
+
+        self.assertEqual(metadata["TIT2"], tags["title"])
+        self.assertEqual(metadata["TIT3"], tags["TIT3"])
+        self.assertEqual(metadata["TALB"], tags["album"])
+        self.assertEqual(metadata["TCON"], tags["genre"])
+        self.assertEqual(metadata["TPE2"], tags["album_artist"])
+        self.assertEqual(metadata["COMM"], tags["comment"])
+        self.assertEqual(metadata["TPUB"], tags["publisher"])
+        self.assertEqual(b"ID3\x03", raw[:4])
+        self.assertIn(b"WOAR", raw)
+        self.assertNotIn(b"TXXX", raw)
+        self.assertNotIn("artist", tags)
+        self.assertNotIn("composer", tags)
+        self.assertNotIn("track", tags)
+        self.assertNotIn("date", tags)
 
     def test_final_concat_applies_per_input_volume(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

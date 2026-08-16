@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -252,12 +253,67 @@ def _foreground_volume(audio_config: dict[str, Any], key: str, default: float) -
     return float(volume)
 
 
+def _required_string(data: dict[str, Any], key: str, label: str) -> str:
+    value = data.get(key)
+    if not isinstance(value, str) or not value:
+        raise ValueError(f"{label} must be a non-empty string")
+    return value
+
+
+def _episode_metadata(episode: dict[str, Any]) -> dict[str, str]:
+    audio_config = episode["audio"]
+    services = episode.get("aws_services")
+    if (
+        not isinstance(services, list)
+        or not services
+        or not all(isinstance(service, str) and service for service in services)
+    ):
+        raise ValueError("Episode aws_services must be a non-empty list of strings")
+    return {
+        "TIT2": _required_string(episode, "title", "Episode title"),
+        "TIT3": _required_string(episode, "scene", "Episode scene"),
+        "TALB": _required_string(audio_config, "albumName", "audio.albumName"),
+        "TCON": "Speech",
+        "TPE2": _required_string(audio_config, "author", "audio.author"),
+        "COMM": f"軽快な英会話を通じて{'、'.join(services)}について学びます。",
+        "TPUB": "Podcast Maker by Hirohito Kato",
+        "WOAR": "https://github.com/hirohitokato/podcast_maker",
+    }
+
+
+def _id3v23_frame(frame_id: str, value: str) -> bytes:
+    if frame_id == "COMM":
+        payload = b"\x01eng\xff\xfe\x00\x00" + value.encode("utf-16")
+    elif frame_id == "WOAR":
+        payload = value.encode("ascii")
+    else:
+        payload = b"\x01" + value.encode("utf-16")
+    return frame_id.encode("ascii") + len(payload).to_bytes(4, "big") + b"\x00\x00" + payload
+
+
+def _syncsafe(value: int) -> bytes:
+    return bytes((value >> 21, value >> 14 & 0x7F, value >> 7 & 0x7F, value & 0x7F))
+
+
+def _write_id3v23(path: Path, metadata: dict[str, str]) -> None:
+    frames = b"".join(_id3v23_frame(frame_id, value) for frame_id, value in metadata.items())
+    tag = b"ID3\x03\x00\x00" + _syncsafe(len(frames)) + frames
+    with path.open("rb") as source, tempfile.NamedTemporaryFile(
+        mode="wb", dir=path.parent, delete=False
+    ) as destination:
+        destination.write(tag)
+        shutil.copyfileobj(source, destination)
+        temporary_path = Path(destination.name)
+    temporary_path.replace(path)
+
+
 def mix_background_music(
     foreground_path: Path,
     output_path: Path,
     background_path: Path,
     volume_paths: list[tuple[Path, float]],
     *,
+    metadata: dict[str, str],
     sample_rate: str,
 ) -> None:
     if not background_path.exists():
@@ -283,6 +339,10 @@ def mix_background_music(
             ),
             "-map",
             "[a]",
+            "-map_metadata",
+            "-1",
+            "-id3v2_version",
+            "0",
             "-codec:a",
             "libmp3lame",
             "-ar",
@@ -296,6 +356,7 @@ def mix_background_music(
     )
     if result.returncode != 0:
         raise RuntimeError("FFmpeg failed to mix background music:\n" + result.stderr)
+    _write_id3v23(output_path, metadata)
 
 
 def build_final_audio(
@@ -309,6 +370,7 @@ def build_final_audio(
     guide_paths: dict[str, Path],
 ) -> None:
     audio_config = episode["audio"]
+    metadata = _episode_metadata(episode)
     dialogue_volume = _foreground_volume(audio_config, "dialogue", 1.0)
     sound_effect_volume = _foreground_volume(audio_config, "soundEffect", 0.5)
     output_format = audio_config.get("outputFormat", "mp3")
@@ -445,6 +507,7 @@ def build_final_audio(
         final_output_path,
         background_music_path,
         volume_paths,
+        metadata=metadata,
         sample_rate=sample_rate,
     )
     print(
