@@ -69,3 +69,16 @@ class EpisodeTests(unittest.TestCase):
             ["man", "woman"],
             schema["$defs"]["dialogueLine"]["properties"]["speaker"]["enum"],
         )
+
+    def test_episode_schema_requires_localized_abstract_and_keywords(self) -> None:
+        schema_path = Path(__file__).parents[1] / "assets" / "episode.schema.json"
+        schema = json.loads(schema_path.read_text(encoding="utf-8"))
+
+        self.assertIn("abstract", schema["required"])
+        self.assertNotIn("scene", schema["properties"])
+        self.assertNotIn("awsConcept", schema["$defs"]["dialogueLine"]["properties"])
+        self.assertEqual(["en", "ja"], schema["properties"]["abstract"]["required"])
+        self.assertIn("100〜150文字程度", schema["properties"]["abstract"]["description"])
+        self.assertEqual(
+            ["keywords"], schema["properties"]["english_learning"]["required"]
+        )

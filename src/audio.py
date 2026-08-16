@@ -262,16 +262,22 @@ def _required_string(data: dict[str, Any], key: str, label: str) -> str:
 
 def _episode_metadata(episode: dict[str, Any]) -> dict[str, str]:
     audio_config = episode["audio"]
-    services = episode.get("aws_services")
+    english_learning = episode.get("english_learning")
+    if not isinstance(english_learning, dict):
+        raise ValueError("Episode english_learning must be an object")
+    services = english_learning.get("keywords")
     if (
         not isinstance(services, list)
         or not services
         or not all(isinstance(service, str) and service for service in services)
     ):
-        raise ValueError("Episode aws_services must be a non-empty list of strings")
+        raise ValueError("Episode english_learning.keywords must be a non-empty list of strings")
+    abstract = episode.get("abstract")
+    if not isinstance(abstract, dict):
+        raise ValueError("Episode abstract must be an object")
     return {
         "TIT2": _required_string(episode, "title", "Episode title"),
-        "TIT3": _required_string(episode, "scene", "Episode scene"),
+        "TIT3": _required_string(abstract, "ja", "Episode abstract.ja"),
         "TALB": _required_string(audio_config, "albumName", "audio.albumName"),
         "TCON": "Speech",
         "TPE2": _required_string(audio_config, "author", "audio.author"),

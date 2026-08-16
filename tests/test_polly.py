@@ -112,7 +112,7 @@ class PollyTests(unittest.TestCase):
                 "guides": guides,
             },
             "dialogue": [],
-            "aws_services": ["S3", "CloudFront"],
+            "english_learning": {"keywords": ["S3", "CloudFront"]},
         }
         client = FakeGuidePolly()
         with tempfile.TemporaryDirectory() as directory:
@@ -180,7 +180,7 @@ class PollyTests(unittest.TestCase):
                 {"id": "001", "speaker": "woman", "en": {"ssml": "<speak>Hello</speak>"}, "ja": {"ssml": "<speak>こんにちは</speak>"}},
                 {"id": "002", "speaker": "man", "en": {"ssml": "<speak>Hi</speak>"}, "ja": {"ssml": "<speak>やあ</speak>"}},
             ],
-            "aws_services": ["S3"],
+            "english_learning": {"keywords": ["S3"]},
         }
         client = FakeGuidePolly()
         with tempfile.TemporaryDirectory() as directory:

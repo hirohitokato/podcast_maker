@@ -2,15 +2,15 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://example.com/schemas/episode.schema.json",
   "title": "AWS English Podcast Episode",
-  "description": "Schema for an AWS English-learning podcast episode consumed by main.py.",
+  "description": "英会話のポッドキャストエピソードを作成するJSONのSchemaです。",
   "type": "object",
   "additionalProperties": true,
   "required": [
     "episode",
     "title",
-    "scene",
+    "abstract",
     "level",
-    "aws_services",
+    "english_learning",
     "dialogue"
   ],
   "properties": {
@@ -20,29 +20,38 @@
     },
     "title": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "description": "Episode title."
     },
-    "scene": {
-      "type": "string",
-      "minLength": 1
+    "abstract": {
+      "type": "object",
+      "description": "ダイアログの紹介文を英語(en)と日本語(ja)で記述します。紹介文は英語・日本語ともに100〜150文字程度にします。",
+      "additionalProperties": false,
+      "required": ["en", "ja"],
+      "properties": {
+        "en": { "type": "string", "minLength": 1 },
+        "ja": { "type": "string", "minLength": 1 }
+      }
     },
     "level": {
       "type": "string",
-      "minLength": 1
-    },
-    "aws_services": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "minLength": 1
-      },
-      "minItems": 1,
-      "uniqueItems": true
+      "minLength": 1,
+      "description": "CEFRレベルを表す文字列。例: Beginner (CEFR A1-A2), Intermediate (CEFR B1-B2), Advanced (CEFR C1-C2)"
     },
     "english_learning": {
       "type": "object",
       "additionalProperties": true,
+      "required": ["keywords"],
       "properties": {
+        "keywords": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
         "target_expressions": {
           "type": "array",
           "items": {
@@ -51,14 +60,16 @@
           },
           "uniqueItems": true
         }
-      }
+      },
+      "description": "このダイアログのキーワードや注目すべき英語表現について記します。"
     },
     "dialogue": {
       "type": "array",
       "minItems": 1,
       "items": {
         "$ref": "#/$defs/dialogueLine"
-      }
+      },
+      "description": "ダイアログの会話文を順番に記述します。"
     }
   },
   "$defs": {
@@ -92,15 +103,13 @@
           "enum": ["man", "woman"],
           "description": "man or woman; selects matching English and Japanese audio.voices entries."
         },
-        "awsConcept": {
-          "type": "string"
-        },
         "vocabulary": {
           "type": "array",
           "items": {
             "type": "string",
             "minLength": 1
-          }
+          },
+          "description": "Vocabulary words used in this dialogue line."
         },
         "en": {
           "$ref": "#/$defs/localizedUtterance"

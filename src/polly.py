@@ -248,13 +248,16 @@ def _guide_text(episode: dict[str, Any], key: str, template: str) -> str:
         return template
     if template.count("%s") != 1:
         raise ValueError("audio.guides.0-introduction must contain exactly one %s")
-    services = episode.get("aws_services")
+    english_learning = episode.get("english_learning")
+    if not isinstance(english_learning, dict):
+        raise ValueError("Episode english_learning must be an object")
+    services = english_learning.get("keywords")
     if (
         not isinstance(services, list)
         or not services
         or not all(isinstance(service, str) and service for service in services)
     ):
-        raise ValueError("Episode aws_services must be a non-empty list of strings")
+        raise ValueError("Episode english_learning.keywords must be a non-empty list of strings")
     return template.replace("%s", ", ".join(services))
 
 

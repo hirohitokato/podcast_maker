@@ -23,8 +23,8 @@ class AudioTests(unittest.TestCase):
                 "author": "Test author",
             },
             "title": "Test title",
-            "scene": "Test scene",
-            "aws_services": ["S3", "Lambda"],
+            "abstract": {"en": "Test abstract", "ja": "テスト紹介文"},
+            "english_learning": {"keywords": ["S3", "Lambda"]},
             "dialogue": [
                 {"id": "001", "speaker": "woman"},
                 {"id": "002", "speaker": "man"},
@@ -145,8 +145,8 @@ class AudioTests(unittest.TestCase):
                 "albumName": "Test album", "author": "Test author",
             },
             "title": "Test title",
-            "scene": "Test scene",
-            "aws_services": ["S3"],
+            "abstract": {"en": "Test abstract", "ja": "テスト紹介文"},
+            "english_learning": {"keywords": ["S3"]},
             "dialogue": [{"id": "001", "speaker": "woman"}],
         }
         with tempfile.TemporaryDirectory() as directory:
@@ -235,15 +235,15 @@ class AudioTests(unittest.TestCase):
             {
                 "audio": {"albumName": "英会話でAWS!", "author": "Kato Hirohito"},
                 "title": "AWS会話",
-                "scene": "Two engineers talk.",
-                "aws_services": ["S3", "Lambda"],
+                "abstract": {"en": "Two engineers talk.", "ja": "2人のエンジニアが話します。"},
+                "english_learning": {"keywords": ["S3", "Lambda"]},
             }
         )
 
         self.assertEqual(
             {
                 "TIT2": "AWS会話",
-                "TIT3": "Two engineers talk.",
+                "TIT3": "2人のエンジニアが話します。",
                 "TALB": "英会話でAWS!",
                 "TCON": "Speech",
                 "TPE2": "Kato Hirohito",

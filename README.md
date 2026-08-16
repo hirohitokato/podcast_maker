@@ -43,7 +43,7 @@ uv run podcast episodes/episode_00.json --output output
 
 共有設定は`config.toml`で変更します。Pollyの声と速度、ポーズ、BGM、会話・SEの音量、アルバム名・作成者、ガイド文を設定できます。
 
-台本JSONには少なくとも`title`、`scene`、`aws_services`、`dialogue`を記述します。これらは音声内容と最終MP3のメタデータに使われます。
+台本JSONには少なくとも`title`、`abstract`（`en`・`ja`で各100〜150文字程度の紹介文）、`english_learning.keywords`、`dialogue`を記述します。これらは音声内容と最終MP3のメタデータに使われます。MP3のTIT3タグには`abstract.ja`を設定します。
 
 ## テスト
 
