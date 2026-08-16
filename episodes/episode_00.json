@@ -1,15 +1,15 @@
 {
   "episode": 1,
-  "title": "Building a Photo-Sharing App at a Café",
+  "title": "写真共有アプリの設計をカフェで話す２人の会話",
   "scene": "Two software engineers talking at a café on a Saturday afternoon",
   "level": "CEFR B1-B2",
 
   "aws_services": [
-    "Amazon S3",
-    "Amazon CloudFront",
-    "Amazon API Gateway",
+    "S3",
+    "CloudFront",
+    "API Gateway",
     "AWS Lambda",
-    "Amazon DynamoDB"
+    "DynamoDB"
   ],
 
   "english_learning": {
@@ -26,7 +26,7 @@
   "dialogue": [
     {
       "id": "001",
-      "speaker": "emma",
+      "speaker": "woman",
 
       "en": {
         "text": "These photos from your trip look amazing.",
@@ -41,7 +41,7 @@
 
     {
       "id": "002",
-      "speaker": "emma",
+      "speaker": "woman",
 
       "en": {
         "text": "Did you take all of them with your phone?",
@@ -56,7 +56,7 @@
 
     {
       "id": "003",
-      "speaker": "daniel",
+      "speaker": "man",
 
       "en": {
         "text": "Yeah. I took way too many, actually.",
@@ -71,7 +71,7 @@
 
     {
       "id": "004",
-      "speaker": "daniel",
+      "speaker": "man",
 
       "en": {
         "text": "I was thinking about making a small website where my friends can see them.",
@@ -86,7 +86,7 @@
 
     {
       "id": "005",
-      "speaker": "emma",
+      "speaker": "woman",
 
       "en": {
         "text": "That sounds fun.",
@@ -101,7 +101,7 @@
 
     {
       "id": "006",
-      "speaker": "emma",
+      "speaker": "woman",
 
       "en": {
         "text": "Are you going to upload everything to a web server?",
@@ -116,7 +116,7 @@
 
     {
       "id": "007",
-      "speaker": "daniel",
+      "speaker": "man",
       "awsConcept": "Amazon S3",
 
       "en": {
@@ -132,7 +132,7 @@
 
     {
       "id": "008",
-      "speaker": "emma",
+      "speaker": "woman",
 
       "en": {
         "text": "Definitely.",
@@ -147,7 +147,7 @@
 
     {
       "id": "009",
-      "speaker": "emma",
+      "speaker": "woman",
       "awsConcept": "Amazon S3",
 
       "en": {
@@ -163,7 +163,7 @@
 
     {
       "id": "010",
-      "speaker": "emma",
+      "speaker": "woman",
       "awsConcept": "Amazon S3",
 
       "en": {
@@ -179,7 +179,7 @@
 
     {
       "id": "011",
-      "speaker": "daniel",
+      "speaker": "man",
 
       "en": {
         "text": "Right.",
@@ -194,7 +194,7 @@
 
     {
       "id": "012",
-      "speaker": "daniel",
+      "speaker": "man",
 
       "en": {
         "text": "But some of my friends live overseas.",
@@ -209,7 +209,7 @@
 
     {
       "id": "013",
-      "speaker": "daniel",
+      "speaker": "man",
 
       "en": {
         "text": "I don't want every image request to travel all the way to one AWS Region.",
@@ -224,7 +224,7 @@
 
     {
       "id": "014",
-      "speaker": "emma",
+      "speaker": "woman",
       "awsConcept": "Amazon CloudFront",
 
       "en": {
@@ -240,7 +240,7 @@
 
     {
       "id": "015",
-      "speaker": "daniel",
+      "speaker": "man",
       "awsConcept": "Amazon CloudFront",
 
       "en": {
@@ -256,7 +256,7 @@
 
     {
       "id": "016",
-      "speaker": "emma",
+      "speaker": "woman",
 
       "en": {
         "text": "Exactly.",
@@ -271,7 +271,7 @@
 
     {
       "id": "017",
-      "speaker": "emma",
+      "speaker": "woman",
       "awsConcept": "Amazon CloudFront",
 
       "en": {
@@ -287,7 +287,7 @@
 
     {
       "id": "018",
-      "speaker": "daniel",
+      "speaker": "man",
 
       "en": {
         "text": "That makes sense.",
@@ -302,7 +302,7 @@
 
     {
       "id": "019",
-      "speaker": "daniel",
+      "speaker": "man",
       "awsConcept": "Amazon S3 + Amazon CloudFront",
 
       "en": {
@@ -318,7 +318,7 @@
 
     {
       "id": "020",
-      "speaker": "emma",
+      "speaker": "woman",
 
       "en": {
         "text": "Exactly.",
@@ -333,7 +333,7 @@
 
     {
       "id": "021",
-      "speaker": "daniel",
+      "speaker": "man",
 
       "en": {
         "text": "What if I also want people to leave comments on each photo?",
@@ -348,7 +348,7 @@
 
     {
       "id": "022",
-      "speaker": "emma",
+      "speaker": "woman",
 
       "en": {
         "text": "Then you'll need something more than S3 and CloudFront.",
@@ -363,7 +363,7 @@
 
     {
       "id": "023",
-      "speaker": "daniel",
+      "speaker": "man",
 
       "en": {
         "text": "A database?",
@@ -378,7 +378,7 @@
 
     {
       "id": "024",
-      "speaker": "emma",
+      "speaker": "woman",
       "awsConcept": "Amazon DynamoDB",
 
       "en": {
@@ -394,7 +394,7 @@
 
     {
       "id": "025",
-      "speaker": "daniel",
+      "speaker": "man",
       "awsConcept": "Amazon DynamoDB",
 
       "en": {
@@ -410,7 +410,7 @@
 
     {
       "id": "026",
-      "speaker": "emma",
+      "speaker": "woman",
 
       "en": {
         "text": "It depends on your requirements.",
@@ -425,7 +425,7 @@
 
     {
       "id": "027",
-      "speaker": "emma",
+      "speaker": "woman",
       "awsConcept": "Amazon DynamoDB",
 
       "en": {
@@ -441,7 +441,7 @@
 
     {
       "id": "028",
-      "speaker": "daniel",
+      "speaker": "man",
       "awsConcept": "Amazon DynamoDB",
 
       "en": {
@@ -457,7 +457,7 @@
 
     {
       "id": "029",
-      "speaker": "emma",
+      "speaker": "woman",
 
       "en": {
         "text": "Usually, no.",
@@ -472,7 +472,7 @@
 
     {
       "id": "030",
-      "speaker": "emma",
+      "speaker": "woman",
       "awsConcept": "Amazon API Gateway + AWS Lambda",
 
       "en": {
@@ -488,7 +488,7 @@
 
     {
       "id": "031",
-      "speaker": "daniel",
+      "speaker": "man",
       "awsConcept": "Amazon API Gateway + AWS Lambda + Amazon DynamoDB",
 
       "en": {
@@ -504,7 +504,7 @@
 
     {
       "id": "032",
-      "speaker": "emma",
+      "speaker": "woman",
 
       "en": {
         "text": "That's the idea.",
@@ -519,7 +519,7 @@
 
     {
       "id": "033",
-      "speaker": "daniel",
+      "speaker": "man",
 
       "en": {
         "text": "That sounds like a lot of AWS services for a photo website.",
@@ -534,7 +534,7 @@
 
     {
       "id": "034",
-      "speaker": "emma",
+      "speaker": "woman",
 
       "en": {
         "text": "It does when you list them all at once, but each one has a clear job.",
@@ -549,7 +549,7 @@
 
     {
       "id": "035",
-      "speaker": "daniel",
+      "speaker": "man",
       "awsConcept": "Amazon S3",
 
       "en": {
@@ -565,7 +565,7 @@
 
     {
       "id": "036",
-      "speaker": "emma",
+      "speaker": "woman",
 
       "en": {
         "text": "Right.",
@@ -580,7 +580,7 @@
 
     {
       "id": "037",
-      "speaker": "daniel",
+      "speaker": "man",
       "awsConcept": "Amazon CloudFront",
 
       "en": {
@@ -596,7 +596,7 @@
 
     {
       "id": "038",
-      "speaker": "emma",
+      "speaker": "woman",
 
       "en": {
         "text": "Right.",
@@ -611,7 +611,7 @@
 
     {
       "id": "039",
-      "speaker": "daniel",
+      "speaker": "man",
       "awsConcept": "Amazon API Gateway",
 
       "en": {
@@ -627,7 +627,7 @@
 
     {
       "id": "040",
-      "speaker": "emma",
+      "speaker": "woman",
 
       "en": {
         "text": "Yes.",
@@ -642,7 +642,7 @@
 
     {
       "id": "041",
-      "speaker": "daniel",
+      "speaker": "man",
       "awsConcept": "AWS Lambda",
 
       "en": {
@@ -658,7 +658,7 @@
 
     {
       "id": "042",
-      "speaker": "emma",
+      "speaker": "woman",
 
       "en": {
         "text": "Exactly.",
@@ -673,7 +673,7 @@
 
     {
       "id": "043",
-      "speaker": "daniel",
+      "speaker": "man",
       "awsConcept": "Amazon DynamoDB",
 
       "en": {
@@ -689,7 +689,7 @@
 
     {
       "id": "044",
-      "speaker": "emma",
+      "speaker": "woman",
 
       "en": {
         "text": "You've got it.",
@@ -704,7 +704,7 @@
 
     {
       "id": "045",
-      "speaker": "daniel",
+      "speaker": "man",
 
       "en": {
         "text": "Nice. I might actually build this.",
@@ -719,7 +719,7 @@
 
     {
       "id": "046",
-      "speaker": "emma",
+      "speaker": "woman",
 
       "en": {
         "text": "Just don't spend three weeks designing the architecture before uploading your first photo.",
@@ -734,7 +734,7 @@
 
     {
       "id": "047",
-      "speaker": "daniel",
+      "speaker": "man",
 
       "en": {
         "text": "No promises.",

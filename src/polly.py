@@ -6,13 +6,14 @@ import os
 import re
 import sys
 import xml.etree.ElementTree as ET
+from html import escape
 from pathlib import Path
 from typing import Any
 
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError
 
-from .episode import apply_japanese_rate, get_voice_config
+from .episode import apply_guide_rate, apply_japanese_rate, get_voice_config
 
 MAX_LEXICONS_PER_LANGUAGE = 5
 
@@ -239,25 +240,55 @@ def _ensure_audio_file(
     return True
 
 
+def _guide_text(episode: dict[str, Any], key: str, template: str) -> str:
+    if key != "0-introduction":
+        return template
+    if template.count("%s") != 1:
+        raise ValueError("audio.guides.0-introduction must contain exactly one %s")
+    services = episode.get("aws_services")
+    if (
+        not isinstance(services, list)
+        or not services
+        or not all(isinstance(service, str) and service for service in services)
+    ):
+        raise ValueError("Episode aws_services must be a non-empty list of strings")
+    return template.replace("%s", ", ".join(services))
+
+
 def generate_dialogue_audio(
     episode: dict[str, Any],
     output_dir: Path,
     *,
+    shared_work_dir: Path,
     rule_paths: list[Path],
     force: bool = False,
-) -> None:
+) -> dict[str, Path]:
     output_dir.mkdir(parents=True, exist_ok=True)
+    shared_work_dir.mkdir(parents=True, exist_ok=True)
     audio_config = episode["audio"]
     output_format = audio_config.get("outputFormat", "mp3")
     sample_rate = audio_config.get("sampleRate", "24000")
     dialogue = episode["dialogue"]
+    guides = audio_config.get("guides")
+    if not isinstance(guides, dict) or not all(
+        isinstance(key, str) and isinstance(template, str)
+        for key, template in guides.items()
+    ):
+        raise ValueError("audio.guides must be an object of guide text strings")
+    if "0-introduction" not in guides:
+        raise ValueError("audio.guides must contain 0-introduction")
+    guide_paths = {
+        key: (output_dir if key == "0-introduction" else shared_work_dir)
+        / f"guide_{key}.{output_format}"
+        for key in guides
+    }
 
     session = create_aws_session()
     verify_credentials(session)
     polly = session.client("polly")
     lexicons = register_lexicons(polly, rule_paths)
-    japanese_voice = get_voice_config(episode, "ja")
-    total_assets = len(dialogue) * 2
+    guide_voice = get_voice_config(episode, "guide")
+    total_assets = len(dialogue) * 2 + len(guides)
     generated = cached = failed = 0
 
     for index, line in enumerate(dialogue, start=1):
@@ -275,7 +306,7 @@ def generate_dialogue_audio(
 
         for language, voice, ssml in (
             ("EN", get_voice_config(episode, speaker), english.get("ssml")),
-            ("JA", japanese_voice, japanese.get("ssml")),
+            ("JA", get_voice_config(episode, f"{speaker}-ja"), japanese.get("ssml")),
         ):
             if not ssml:
                 raise ValueError(
@@ -313,9 +344,38 @@ def generate_dialogue_audio(
                 failed += 1
                 print(f"ERROR generating {language} {line_id}: {e}", file=sys.stderr)
 
+    for key, template in guides.items():
+        ssml = apply_guide_rate(
+            f"<speak>{escape(_guide_text(episode, key, template))}</speak>",
+            audio_config,
+        )
+        try:
+            was_generated = _ensure_audio_file(
+                polly,
+                output_path=guide_paths[key],
+                ssml=ssml,
+                voice=guide_voice,
+                output_format=output_format,
+                sample_rate=sample_rate,
+                lexicons=lexicons,
+                force=force,
+            )
+            state = "GENERATED" if was_generated else "CACHED"
+            asset_index = generated + cached + failed + 1
+            print(
+                f"[{asset_index:03}/{total_assets:03}] "
+                f"{state:<9} GUIDE    {guide_paths[key].name}"
+            )
+            generated += int(was_generated)
+            cached += int(not was_generated)
+        except (BotoCoreError, ClientError, OSError) as e:
+            failed += 1
+            print(f"ERROR generating guide {key}: {e}", file=sys.stderr)
+
     print(f"\nAudio generation summary\n------------------------")
     print(
         f"Generated : {generated}\nCached    : {cached}\nFailed    : {failed}\nTotal     : {total_assets}\n"
     )
     if failed:
         raise RuntimeError(f"{failed} audio file(s) failed to generate")
+    return guide_paths

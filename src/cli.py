@@ -89,15 +89,21 @@ def main() -> int:
             assets_dir / "aws-terms-ja.pls",
         ]
         rule_paths = list(dict.fromkeys(path.resolve() for path in rule_paths))
-        generate_dialogue_audio(
-            episode, args.output, rule_paths=rule_paths, force=args.force
+        episode_output_dir = args.output / args.input.stem
+        guide_paths = generate_dialogue_audio(
+            episode,
+            episode_output_dir / ".work",
+            shared_work_dir=args.output / ".work",
+            rule_paths=rule_paths,
+            force=args.force,
         )
         build_final_audio(
             episode,
-            args.output,
-            args.output / (args.final_name or f"{args.input.stem}.mp3"),
-            assets_dir=assets_dir,
+            episode_output_dir,
+            episode_output_dir / (args.final_name or f"{args.input.stem}.mp3"),
             background_music_path=background_music_path,
+            shared_work_dir=args.output / ".work",
+            guide_paths=guide_paths,
         )
     except (
         FileNotFoundError,

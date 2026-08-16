@@ -89,8 +89,8 @@
         },
         "speaker": {
           "type": "string",
-          "minLength": 1,
-          "description": "Must match a key under audio.voices for English synthesis."
+          "enum": ["man", "woman"],
+          "description": "man or woman; selects matching English and Japanese audio.voices entries."
         },
         "awsConcept": {
           "type": "string"

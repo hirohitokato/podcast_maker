@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+import json
 from pathlib import Path
 
 from src.episode import apply_japanese_rate, load_episode, load_settings
@@ -35,8 +36,30 @@ class EpisodeTests(unittest.TestCase):
     def test_episode_does_not_require_shared_audio_settings(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "episode.json"
-            path.write_text('{"dialogue": []}', encoding="utf-8")
+            path.write_text(
+                '{"dialogue": [{"speaker": "man"}, {"speaker": "woman"}]}',
+                encoding="utf-8",
+            )
 
             episode = load_episode(path)
 
-        self.assertEqual([], episode["dialogue"])
+        self.assertEqual(["man", "woman"], [line["speaker"] for line in episode["dialogue"]])
+
+    def test_episode_rejects_speakers_other_than_man_or_woman(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "episode.json"
+            path.write_text(
+                '{"dialogue": [{"speaker": "emma"}]}', encoding="utf-8"
+            )
+
+            with self.assertRaisesRegex(ValueError, "man, woman"):
+                load_episode(path)
+
+    def test_episode_schema_limits_speakers_to_man_and_woman(self) -> None:
+        schema_path = Path(__file__).parents[1] / "assets" / "episode.schema.json"
+        schema = json.loads(schema_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(
+            ["man", "woman"],
+            schema["$defs"]["dialogueLine"]["properties"]["speaker"]["enum"],
+        )

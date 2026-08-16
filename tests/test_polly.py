@@ -1,6 +1,7 @@
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from src import polly
 
@@ -19,6 +20,33 @@ class FakePolly:
 
     def put_lexicon(self, **kwargs: str) -> None:
         self.put_calls.append(kwargs)
+
+
+class FakeGuidePolly(FakePolly):
+    def __init__(self) -> None:
+        super().__init__()
+        self.synthesize_calls: list[dict[str, str]] = []
+
+    def synthesize_speech(self, **kwargs: str) -> dict[str, object]:
+        self.synthesize_calls.append(kwargs)
+        return {"AudioStream": FakeAudioStream()}
+
+
+class FakeAudioStream:
+    def read(self) -> bytes:
+        return b"guide audio"
+
+    def close(self) -> None:
+        pass
+
+
+class FakeSession:
+    def __init__(self, client: FakeGuidePolly) -> None:
+        self._client = client
+
+    def client(self, name: str) -> FakeGuidePolly:
+        self.last_client_name = name
+        return self._client
 
 
 class PollyTests(unittest.TestCase):
@@ -64,4 +92,92 @@ class PollyTests(unittest.TestCase):
         self.assertNotEqual(
             polly.create_cache_key(**common, lexicon_cache_tokens=["rules:old"]),
             polly.create_cache_key(**common, lexicon_cache_tokens=["rules:new"]),
+        )
+
+    def test_generates_and_caches_all_guides_in_the_required_work_directories(self) -> None:
+        guides = {
+            "0-introduction": "Topics: %s",
+            "1-bilingual": "Bilingual",
+            "2-slow": "Slow",
+            "3-shadowing": "Shadowing",
+            "4-normal": "Normal",
+            "5-conclusion": "Conclusion",
+        }
+        episode = {
+            "audio": {
+                "outputFormat": "mp3",
+                "sampleRate": "24000",
+                "voices": {"guide": {"languageCode": "ja-JP", "voiceId": "Kazuha", "engine": "neural"}},
+                "profiles": {"guide": {"rate": "110%"}},
+                "guides": guides,
+            },
+            "dialogue": [],
+            "aws_services": ["S3", "CloudFront"],
+        }
+        client = FakeGuidePolly()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with (
+                patch.object(polly, "create_aws_session", return_value=FakeSession(client)),
+                patch.object(polly, "verify_credentials"),
+            ):
+                paths = polly.generate_dialogue_audio(
+                    episode,
+                    root / "episode" / ".work",
+                    shared_work_dir=root / ".work",
+                    rule_paths=[],
+                )
+                polly.generate_dialogue_audio(
+                    episode,
+                    root / "episode" / ".work",
+                    shared_work_dir=root / ".work",
+                    rule_paths=[],
+                )
+
+            self.assertEqual(6, len(client.synthesize_calls))
+            self.assertEqual("Kazuha", client.synthesize_calls[0]["VoiceId"])
+            self.assertEqual("ja-JP", client.synthesize_calls[0]["LanguageCode"])
+            self.assertIn("Topics: S3, CloudFront", client.synthesize_calls[0]["Text"])
+            self.assertEqual(root / "episode" / ".work" / "guide_0-introduction.mp3", paths["0-introduction"])
+            self.assertEqual(root / ".work" / "guide_1-bilingual.mp3", paths["1-bilingual"])
+            self.assertTrue(Path(str(paths["0-introduction"]) + ".sha256").exists())
+
+    def test_uses_speaker_specific_japanese_voices(self) -> None:
+        episode = {
+            "audio": {
+                "outputFormat": "mp3",
+                "sampleRate": "24000",
+                "voices": {
+                    "woman": {"languageCode": "en-US", "voiceId": "Joanna", "engine": "generative"},
+                    "man": {"languageCode": "en-US", "voiceId": "Matthew", "engine": "generative"},
+                    "woman-ja": {"languageCode": "ja-JP", "voiceId": "Tomoko", "engine": "neural"},
+                    "man-ja": {"languageCode": "ja-JP", "voiceId": "Takumi", "engine": "neural"},
+                    "guide": {"languageCode": "ja-JP", "voiceId": "Kazuha", "engine": "neural"},
+                },
+                "profiles": {"ja": {"rate": "110%"}, "guide": {"rate": "110%"}},
+                "guides": {"0-introduction": "Topics: %s"},
+            },
+            "dialogue": [
+                {"id": "001", "speaker": "woman", "en": {"ssml": "<speak>Hello</speak>"}, "ja": {"ssml": "<speak>こんにちは</speak>"}},
+                {"id": "002", "speaker": "man", "en": {"ssml": "<speak>Hi</speak>"}, "ja": {"ssml": "<speak>やあ</speak>"}},
+            ],
+            "aws_services": ["S3"],
+        }
+        client = FakeGuidePolly()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with (
+                patch.object(polly, "create_aws_session", return_value=FakeSession(client)),
+                patch.object(polly, "verify_credentials"),
+            ):
+                polly.generate_dialogue_audio(
+                    episode,
+                    root / "episode" / ".work",
+                    shared_work_dir=root / ".work",
+                    rule_paths=[],
+                )
+
+        self.assertEqual(
+            ["Joanna", "Tomoko", "Matthew", "Takumi", "Kazuha"],
+            [call["VoiceId"] for call in client.synthesize_calls],
         )

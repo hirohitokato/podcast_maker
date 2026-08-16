@@ -1,9 +1,44 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import subprocess
 import tempfile
 from pathlib import Path
 from typing import Any
+
+
+CACHE_VERSION = 1
+
+
+def _hash_path(audio_path: Path) -> Path:
+    return Path(str(audio_path) + ".sha256")
+
+
+def _cache_key(data: dict[str, Any]) -> str:
+    serialized = json.dumps(data, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+
+
+def _file_hash(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _cache_is_valid(audio_path: Path, expected_key: str) -> bool:
+    if not audio_path.exists() or audio_path.stat().st_size == 0:
+        return False
+    try:
+        return _hash_path(audio_path).read_text(encoding="utf-8").strip() == expected_key
+    except OSError:
+        return False
+
+
+def _save_cache_key(audio_path: Path, cache_key: str) -> None:
+    _hash_path(audio_path).write_text(cache_key + "\n", encoding="utf-8")
 
 
 def create_silence_file(path: Path, *, duration_ms: int, sample_rate: str) -> None:
@@ -168,8 +203,9 @@ def build_final_audio(
     output_dir: Path,
     final_output_path: Path,
     *,
-    assets_dir: Path,
     background_music_path: Path,
+    shared_work_dir: Path,
+    guide_paths: dict[str, Path],
 ) -> None:
     audio_config = episode["audio"]
     output_format = audio_config.get("outputFormat", "mp3")
@@ -183,52 +219,75 @@ def build_final_audio(
         "opening": 3000,
         "closing": 5000,
     }
-    work_dir = output_dir / ".work"
-    work_dir.mkdir(parents=True, exist_ok=True)
+    episode_work_dir = output_dir / ".work"
+    episode_work_dir.mkdir(parents=True, exist_ok=True)
+    shared_work_dir.mkdir(parents=True, exist_ok=True)
     silence = {
-        name: work_dir / f"silence_{sample_rate}_{duration}ms.mp3"
+        name: shared_work_dir / f"silence_{sample_rate}_{duration}ms.mp3"
         for name, duration in pauses.items()
     }
     for name, path in silence.items():
-        if not path.exists():
+        cache_key = _cache_key(
+            {
+                "version": CACHE_VERSION,
+                "kind": "silence",
+                "sampleRate": sample_rate,
+                "durationMs": pauses[name],
+            }
+        )
+        if not _cache_is_valid(path, cache_key):
             create_silence_file(path, duration_ms=pauses[name], sample_rate=sample_rate)
+            _save_cache_key(path, cache_key)
 
     dialogue = episode["dialogue"]
     english: list[Path] = []
     bilingual: list[Path] = []
     for index, line in enumerate(dialogue, start=1):
         line_id = str(line.get("id", index)).zfill(3)
-        en_path = output_dir / f"{line_id}_{line['speaker']}_en_normal.{output_format}"
-        ja_path = output_dir / f"{line_id}_ja_normal.{output_format}"
+        en_path = episode_work_dir / f"{line_id}_{line['speaker']}_en_normal.{output_format}"
+        ja_path = episode_work_dir / f"{line_id}_ja_normal.{output_format}"
         english.append(en_path)
         bilingual.extend([en_path, silence["translation"], ja_path])
         if index < len(dialogue):
             english.append(silence["speaker"])
             bilingual.append(silence["speaker"])
 
-    section1 = work_dir / "section_01_en_normal.mp3"
-    section2 = work_dir / "section_02_en_ja.mp3"
-    introduction = assets_dir / "speech_introduction.mp3"
-    bilingual_introduction = assets_dir / "speech_both_en_ja.mp3"
+    section1 = output_dir / "section_01_en_normal.mp3"
+    section2 = output_dir / "section_02_en_ja.mp3"
+    try:
+        guide_introduction = guide_paths["0-introduction"]
+        guide_bilingual = guide_paths["1-bilingual"]
+    except KeyError as e:
+        raise ValueError(f"Generated guide is missing: {e.args[0]}") from e
     concatenate_mp3_files(english, section1, sample_rate=sample_rate)
     concatenate_mp3_files(bilingual, section2, sample_rate=sample_rate)
-    foreground = work_dir / "final_foreground.mp3"
     volume_paths = [
         (silence["opening"], 0.5),
-        (introduction, 0.3),
+        (guide_introduction, 0.3),
         (silence["conversation"], 0.3),
         (section1, 0.1),
         (silence["section"], 0.2),
-        (bilingual_introduction, 0.3),
+        (guide_bilingual, 0.3),
         (silence["conversation"], 0.3),
         (section2, 0.1),
         (silence["closing"], 0.5),
     ]
-    concatenate_mp3_files(
-        [path for path, _ in volume_paths],
-        foreground,
-        sample_rate=sample_rate,
+    foreground_key = _cache_key(
+        {
+            "version": CACHE_VERSION,
+            "kind": "foreground",
+            "sampleRate": sample_rate,
+            "inputs": [(_file_hash(path), volume) for path, volume in volume_paths],
+        }
     )
+    foreground = shared_work_dir / f"final_foreground_{foreground_key}.mp3"
+    if not _cache_is_valid(foreground, foreground_key):
+        concatenate_mp3_files(
+            [path for path, _ in volume_paths],
+            foreground,
+            sample_rate=sample_rate,
+        )
+        _save_cache_key(foreground, foreground_key)
     mix_background_music(
         foreground,
         final_output_path,
