@@ -25,6 +25,7 @@ introduction guide, and cache hashes. Guide text comes from `audio.guides` in `c
 
 ## License
 
+- [AGPL-3.0 License](./LICENSE)
 - This repository contains background music and sound effects files. Please read the license information carefully before using them.:
   - BGM: [`assets/bgm.mp3`](assets/bgm.mp3):  "[Kuru kuru world written by 蒲鉾さちこ](https://dova-s.jp/bgm/detail/23745)".
   - Jingle: [`assets/jingle.mp3`](assets/jingle.mp3): "[文字・テロップ表示音 written by ひふみセオリー](https://dova-s.jp/se/detail/665)".
