@@ -13,9 +13,12 @@ from typing import Any
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError
 
-from .episode import apply_guide_rate, apply_japanese_rate, get_voice_config
+from .episode import apply_guide_rate, apply_japanese_rate, apply_slow_rate, get_voice_config
 
 MAX_LEXICONS_PER_LANGUAGE = 5
+REQUIRED_GUIDES = (
+    "0-introduction", "1-bilingual", "2-slow", "3-shadowing", "4-normal", "5-conclusion",
+)
 
 
 def create_aws_session() -> boto3.Session:
@@ -275,8 +278,9 @@ def generate_dialogue_audio(
         for key, template in guides.items()
     ):
         raise ValueError("audio.guides must be an object of guide text strings")
-    if "0-introduction" not in guides:
-        raise ValueError("audio.guides must contain 0-introduction")
+    missing_guides = [key for key in REQUIRED_GUIDES if key not in guides]
+    if missing_guides:
+        raise ValueError("audio.guides is missing: " + ", ".join(missing_guides))
     guide_paths = {
         key: (output_dir if key == "0-introduction" else shared_work_dir)
         / f"guide_{key}.{output_format}"
@@ -288,7 +292,7 @@ def generate_dialogue_audio(
     polly = session.client("polly")
     lexicons = register_lexicons(polly, rule_paths)
     guide_voice = get_voice_config(episode, "guide")
-    total_assets = len(dialogue) * 2 + len(guides)
+    total_assets = len(dialogue) * 3 + len(guides)
     generated = cached = failed = 0
 
     for index, line in enumerate(dialogue, start=1):
@@ -306,6 +310,7 @@ def generate_dialogue_audio(
 
         for language, voice, ssml in (
             ("EN", get_voice_config(episode, speaker), english.get("ssml")),
+            ("SLOW", get_voice_config(episode, speaker), english.get("ssml")),
             ("JA", get_voice_config(episode, f"{speaker}-ja"), japanese.get("ssml")),
         ):
             if not ssml:
@@ -316,6 +321,10 @@ def generate_dialogue_audio(
                 ssml = apply_japanese_rate(ssml, audio_config)
                 filename = f"{line_id}_ja_normal.{output_format}"
                 label = "ja"
+            elif language == "SLOW":
+                ssml = apply_slow_rate(ssml, audio_config)
+                filename = f"{line_id}_{speaker}_en_slow.{output_format}"
+                label = speaker
             else:
                 filename = f"{line_id}_{speaker}_en_normal.{output_format}"
                 label = speaker

@@ -13,7 +13,8 @@ Create `.env` from `.env.example` and set AWS credentials.
 Edit `config.toml` to change shared Polly voices, speech rates, and pause durations for every episode.
 Set `audio.backgroundMusic` there, or override it for one run with `--bgm path/to/music.mp3`.
 
-Each episode is written to `output/<episode-json-stem>/`: the final MP3, section MP3s,
+Each episode is written to `output/<episode-json-stem>/`: the final MP3 and normal, bilingual,
+slow, and shadowing section MP3s. The final MP3 includes guides and jingle transitions,
 and an episode-local `.work/` directory containing Polly sentence audio, the episode-specific
 introduction guide, and cache hashes. Guide text comes from `audio.guides` in `config.toml`.
 `output/.work/` stores reusable silence, foreground-audio, and shared-guide caches.

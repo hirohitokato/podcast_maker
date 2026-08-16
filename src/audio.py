@@ -112,6 +112,52 @@ def concatenate_mp3_files(
         list_file.unlink(missing_ok=True)
 
 
+def create_shadowing_section(
+    input_files: list[Path], output_path: Path, *, sample_rate: str
+) -> None:
+    if not input_files:
+        raise ValueError("No input audio files were specified")
+    for path in input_files:
+        if not path.exists():
+            raise FileNotFoundError(f"Audio file not found: {path}")
+
+    pairs: list[str] = []
+    for index in range(len(input_files)):
+        pairs.extend(
+            [
+                f"[{index}:a]asplit=2[voice{index}][pause{index}]",
+                f"[pause{index}]volume=0[silent{index}]",
+                f"[voice{index}][silent{index}]concat=n=2:v=0:a=1[pair{index}]",
+            ]
+        )
+    pairs.append(
+        "".join(f"[pair{index}]" for index in range(len(input_files)))
+        + f"concat=n={len(input_files)}:v=0:a=1[shadowing]"
+    )
+    result = subprocess.run(
+        [
+            "ffmpeg",
+            "-y",
+            *[argument for path in input_files for argument in ("-i", str(path))],
+            "-filter_complex",
+            ";".join(pairs),
+            "-map",
+            "[shadowing]",
+            "-codec:a",
+            "libmp3lame",
+            "-ar",
+            sample_rate,
+            "-ac",
+            "1",
+            str(output_path),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        raise RuntimeError("FFmpeg failed to create shadowing section:\n" + result.stderr)
+
+
 def _audio_duration(path: Path) -> float:
     result = subprocess.run(
         [
@@ -138,10 +184,13 @@ def _background_volume_expression(segments: list[tuple[float, float]]) -> str:
     for index, (duration, volume) in enumerate(segments):
         end = start + duration
         if index == len(segments) - 1:
+            initial_volume = segments[index - 1][1]
+            fade_in_end = start + 1
             fade_start = end - 2
             terms.extend(
                 [
-                    f"{volume}*between(t\\,{start}\\,{fade_start})",
+                    f"({initial_volume}+({volume}-{initial_volume})*(t-{start}))*between(t\\,{start}\\,{fade_in_end})",
+                    f"{volume}*between(t\\,{fade_in_end}\\,{fade_start})",
                     f"{volume}*({end}-t)/2*between(t\\,{fade_start}\\,{end})",
                 ]
             )
@@ -164,7 +213,6 @@ def mix_background_music(
 
     duration = _audio_duration(foreground_path)
     segments = [(_audio_duration(path), volume) for path, volume in volume_paths]
-    segments[-1] = (5.0, segments[-1][1])
     volume = _background_volume_expression(segments)
     result = subprocess.run(
         [
@@ -204,6 +252,7 @@ def build_final_audio(
     final_output_path: Path,
     *,
     background_music_path: Path,
+    jingle_path: Path,
     shared_work_dir: Path,
     guide_paths: dict[str, Path],
 ) -> None:
@@ -242,35 +291,65 @@ def build_final_audio(
     dialogue = episode["dialogue"]
     english: list[Path] = []
     bilingual: list[Path] = []
+    slow: list[Path] = []
+    slow_lines: list[Path] = []
     for index, line in enumerate(dialogue, start=1):
         line_id = str(line.get("id", index)).zfill(3)
         en_path = episode_work_dir / f"{line_id}_{line['speaker']}_en_normal.{output_format}"
         ja_path = episode_work_dir / f"{line_id}_ja_normal.{output_format}"
+        slow_path = episode_work_dir / f"{line_id}_{line['speaker']}_en_slow.{output_format}"
         english.append(en_path)
         bilingual.extend([en_path, silence["translation"], ja_path])
+        slow.append(slow_path)
+        slow_lines.append(slow_path)
         if index < len(dialogue):
             english.append(silence["speaker"])
             bilingual.append(silence["speaker"])
+            slow.append(silence["speaker"])
 
     section1 = output_dir / "section_01_en_normal.mp3"
     section2 = output_dir / "section_02_en_ja.mp3"
+    section3 = output_dir / "section_03_en_slow.mp3"
+    section4 = output_dir / "section_04_en_shadowing.mp3"
+    required_guides = (
+        "0-introduction", "1-bilingual", "2-slow", "3-shadowing", "4-normal", "5-conclusion",
+    )
     try:
-        guide_introduction = guide_paths["0-introduction"]
-        guide_bilingual = guide_paths["1-bilingual"]
+        guides = {key: guide_paths[key] for key in required_guides}
     except KeyError as e:
         raise ValueError(f"Generated guide is missing: {e.args[0]}") from e
     concatenate_mp3_files(english, section1, sample_rate=sample_rate)
     concatenate_mp3_files(bilingual, section2, sample_rate=sample_rate)
+    concatenate_mp3_files(slow, section3, sample_rate=sample_rate)
+    create_shadowing_section(slow_lines, section4, sample_rate=sample_rate)
     volume_paths = [
         (silence["opening"], 0.5),
-        (guide_introduction, 0.3),
+        (guides["0-introduction"], 0.3),
         (silence["conversation"], 0.3),
-        (section1, 0.1),
+        (section1, 0.07),
         (silence["section"], 0.2),
-        (guide_bilingual, 0.3),
+        (jingle_path, 0.01),
+        (guides["1-bilingual"], 0.3),
         (silence["conversation"], 0.3),
-        (section2, 0.1),
-        (silence["closing"], 0.5),
+        (section2, 0.07),
+        (silence["section"], 0.2),
+        (jingle_path, 0.01),
+        (guides["2-slow"], 0.3),
+        (silence["conversation"], 0.3),
+        (section3, 0.07),
+        (silence["section"], 0.2),
+        (jingle_path, 0.01),
+        (guides["3-shadowing"], 0.3),
+        (silence["conversation"], 0.3),
+        (section4, 0.07),
+        (silence["section"], 0.2),
+        (jingle_path, 0.01),
+        (guides["4-normal"], 0.3),
+        (silence["conversation"], 0.3),
+        (section1, 0.07),
+        (silence["section"], 0.2),
+        (guides["5-conclusion"], 0.3),
+        (silence["closing"], 0.4),
     ]
     foreground_key = _cache_key(
         {
@@ -296,5 +375,5 @@ def build_final_audio(
         sample_rate=sample_rate,
     )
     print(
-        f"Final audio created\n-------------------\nSection 1 : {section1}\nSection 2 : {section2}\nFinal MP3 : {final_output_path}\n"
+        f"Final audio created\n-------------------\nSection 1 : {section1}\nSection 2 : {section2}\nSection 3 : {section3}\nSection 4 : {section4}\nFinal MP3 : {final_output_path}\n"
     )

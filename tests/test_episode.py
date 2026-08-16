@@ -3,7 +3,7 @@ import unittest
 import json
 from pathlib import Path
 
-from src.episode import apply_japanese_rate, load_episode, load_settings
+from src.episode import apply_japanese_rate, apply_slow_rate, load_episode, load_settings
 
 
 class EpisodeTests(unittest.TestCase):
@@ -20,6 +20,12 @@ class EpisodeTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(ValueError, "rate"):
             apply_japanese_rate("<speak>日本語</speak>", {"profiles": {"ja": {"rate": "fast"}}})
+
+    def test_slow_rate_uses_profile(self) -> None:
+        self.assertEqual(
+            '<speak><prosody rate="85%">Hello</prosody></speak>',
+            apply_slow_rate("<speak>Hello</speak>", {"profiles": {"slow": {"rate": "85%"}}}),
+        )
 
     def test_load_settings_reads_toml(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

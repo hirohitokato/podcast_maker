@@ -78,5 +78,9 @@ def apply_japanese_rate(ssml: str, audio_config: dict[str, Any]) -> str:
     return _apply_rate(ssml, audio_config, "ja", "110%")
 
 
+def apply_slow_rate(ssml: str, audio_config: dict[str, Any]) -> str:
+    return _apply_rate(ssml, audio_config, "slow", None)
+
+
 def apply_guide_rate(ssml: str, audio_config: dict[str, Any]) -> str:
     return _apply_rate(ssml, audio_config, "guide", None)

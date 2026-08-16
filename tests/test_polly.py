@@ -142,6 +142,20 @@ class PollyTests(unittest.TestCase):
             self.assertEqual(root / ".work" / "guide_1-bilingual.mp3", paths["1-bilingual"])
             self.assertTrue(Path(str(paths["0-introduction"]) + ".sha256").exists())
 
+    def test_rejects_missing_required_guide_before_calling_polly(self) -> None:
+        episode = {
+            "audio": {"guides": {"0-introduction": "Topics: %s"}},
+            "dialogue": [],
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(ValueError, "1-bilingual"):
+                polly.generate_dialogue_audio(
+                    episode,
+                    Path(directory) / "episode",
+                    shared_work_dir=Path(directory) / "shared",
+                    rule_paths=[],
+                )
+
     def test_uses_speaker_specific_japanese_voices(self) -> None:
         episode = {
             "audio": {
@@ -154,8 +168,13 @@ class PollyTests(unittest.TestCase):
                     "man-ja": {"languageCode": "ja-JP", "voiceId": "Takumi", "engine": "neural"},
                     "guide": {"languageCode": "ja-JP", "voiceId": "Kazuha", "engine": "neural"},
                 },
-                "profiles": {"ja": {"rate": "110%"}, "guide": {"rate": "110%"}},
-                "guides": {"0-introduction": "Topics: %s"},
+                "profiles": {
+                    "ja": {"rate": "110%"}, "slow": {"rate": "85%"}, "guide": {"rate": "110%"},
+                },
+                "guides": {
+                    "0-introduction": "Topics: %s", "1-bilingual": "Bilingual", "2-slow": "Slow",
+                    "3-shadowing": "Shadowing", "4-normal": "Normal", "5-conclusion": "Conclusion",
+                },
             },
             "dialogue": [
                 {"id": "001", "speaker": "woman", "en": {"ssml": "<speak>Hello</speak>"}, "ja": {"ssml": "<speak>こんにちは</speak>"}},
@@ -178,6 +197,7 @@ class PollyTests(unittest.TestCase):
                 )
 
         self.assertEqual(
-            ["Joanna", "Tomoko", "Matthew", "Takumi", "Kazuha"],
+            ["Joanna", "Joanna", "Tomoko", "Matthew", "Matthew", "Takumi", *["Kazuha"] * 6],
             [call["VoiceId"] for call in client.synthesize_calls],
         )
+        self.assertIn('rate="85%"', client.synthesize_calls[1]["Text"])

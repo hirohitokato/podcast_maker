@@ -1,0 +1,309 @@
+{
+  "episode": 1,
+  "title": "The Hotel Key to AWS Permissions",
+  "scene": "A hotel check-in desk, where a business traveler asks about room access and accidentally gets an AWS security lesson.",
+  "level": "Intermediate (CEFR B1-B2)",
+  "aws_services": [
+    "AWS IAM",
+    "AWS IAM Identity Center",
+    "AWS STS"
+  ],
+  "english_learning": {
+    "target_expressions": [
+      "be allowed to",
+      "on behalf of",
+      "only for a while",
+      "as long as",
+      "the minimum you need"
+    ]
+  },
+  "dialogue": [
+    {
+      "id": 1,
+      "speaker": "woman",
+      "en": {
+        "text": "Welcome to the Cloud Hotel. May I see your ID?",
+        "ssml": "<speak>Welcome to the Cloud Hotel. May I see your ID?</speak>"
+      },
+      "ja": {
+        "text": "クラウドホテルへようこそ。身分証を拝見できますか？",
+        "ssml": "<speak>クラウドホテルへようこそ。身分証を拝見できますか？</speak>"
+      },
+      "awsConcept": "IAM User / Identity",
+      "vocabulary": [
+        "May I see your ID?"
+      ]
+    },
+    {
+      "id": 2,
+      "speaker": "man",
+      "en": {
+        "text": "Sure. Funny question: is an IAM user basically my permanent hotel identity?",
+        "ssml": "<speak>Sure. Funny question: is an IAM user basically my permanent hotel identity?</speak>"
+      },
+      "ja": {
+        "text": "もちろん。変な質問ですが、IAMユーザーってホテルでいう恒久的な本人情報みたいなものですか？",
+        "ssml": "<speak>もちろん。変な質問ですが、IAMユーザーってホテルでいう恒久的な本人情報みたいなものですか？</speak>"
+      },
+      "awsConcept": "IAM User"
+    },
+    {
+      "id": 3,
+      "speaker": "woman",
+      "en": {
+        "text": "A user represents one identity. A group collects users so permissions are easier to manage.",
+        "ssml": "<speak>A user represents one identity. A group collects users so permissions are easier to manage.</speak>"
+      },
+      "ja": {
+        "text": "Userは1つのアイデンティティを表します。GroupはUserをまとめ、権限管理をしやすくします。",
+        "ssml": "<speak>Userは1つのアイデンティティを表します。GroupはUserをまとめ、権限管理をしやすくします。</speak>"
+      },
+      "awsConcept": "IAM User / Group"
+    },
+    {
+      "id": 4,
+      "speaker": "man",
+      "en": {
+        "text": "Then why does AWS keep telling me to use roles?",
+        "ssml": "<speak>Then why does AWS keep telling me to use roles?</speak>"
+      },
+      "ja": {
+        "text": "では、なぜAWSではRoleを使うようによく言われるのですか？",
+        "ssml": "<speak>では、なぜAWSではRoleを使うようによく言われるのですか？</speak>"
+      },
+      "awsConcept": "IAM Role"
+    },
+    {
+      "id": 5,
+      "speaker": "woman",
+      "en": {
+        "text": "Imagine you are a guest who also needs access to the conference floor tonight.",
+        "ssml": "<speak>Imagine you are a guest who also needs access to the conference floor tonight.</speak>"
+      },
+      "ja": {
+        "text": "宿泊客のあなたが、今夜だけ会議フロアにも入る必要があると考えてください。",
+        "ssml": "<speak>宿泊客のあなたが、今夜だけ会議フロアにも入る必要があると考えてください。</speak>"
+      },
+      "awsConcept": "AssumeRole"
+    },
+    {
+      "id": 6,
+      "speaker": "woman",
+      "en": {
+        "text": "You assume the Conference-Guest role, and AWS STS gives you temporary credentials for that role.",
+        "ssml": "<speak>You assume the Conference-Guest role, and AWS STS gives you temporary credentials for that role.</speak>"
+      },
+      "ja": {
+        "text": "Conference-Guestロールを引き受けると、AWS STSがそのロール用の一時的な認証情報を発行します。",
+        "ssml": "<speak>Conference-Guestロールを引き受けると、AWS STSがそのロール用の一時的な認証情報を発行します。</speak>"
+      },
+      "awsConcept": "AssumeRole / Temporary Credentials",
+      "vocabulary": [
+        "assume a role",
+        "temporary credentials"
+      ]
+    },
+    {
+      "id": 7,
+      "speaker": "man",
+      "en": {
+        "text": "So: user, AssumeRole, role, then the role's policy decides what I can do?",
+        "ssml": "<speak>So: user, AssumeRole, role, then the role's policy decides what I can do?</speak>"
+      },
+      "ja": {
+        "text": "つまり、UserからAssumeRoleしてRoleになり、そのRoleのPolicyが何をできるか決めるのですね？",
+        "ssml": "<speak>つまり、UserからAssumeRoleしてRoleになり、そのRoleのPolicyが何をできるか決めるのですね？</speak>"
+      },
+      "awsConcept": "User -> AssumeRole -> IAM Role -> IAM Policy -> AWS Resource"
+    },
+    {
+      "id": 8,
+      "speaker": "woman",
+      "en": {
+        "text": "Exactly. An identity-based policy can allow reading objects from one S3 bucket.",
+        "ssml": "<speak>Exactly. An identity-based policy can allow reading objects from one S3 bucket.</speak>"
+      },
+      "ja": {
+        "text": "その通りです。Identity-based Policyでは、例えば特定のS3バケットからオブジェクトを読むことを許可できます。",
+        "ssml": "<speak>その通りです。Identity-based Policyでは、例えば特定のS3バケットからオブジェクトを読むことを許可できます。</speak>"
+      },
+      "awsConcept": "Identity-based Policy / Action / Resource"
+    },
+    {
+      "id": 9,
+      "speaker": "man",
+      "en": {
+        "text": "And a resource-based policy is attached to the bucket itself?",
+        "ssml": "<speak>And a resource-based policy is attached to the bucket itself?</speak>"
+      },
+      "ja": {
+        "text": "Resource-based Policyはバケット自体に付くのですか？",
+        "ssml": "<speak>Resource-based Policyはバケット自体に付くのですか？</speak>"
+      },
+      "awsConcept": "Resource-based Policy"
+    },
+    {
+      "id": 10,
+      "speaker": "woman",
+      "en": {
+        "text": "Right. It can name a principal, actions, resources, and optional conditions.",
+        "ssml": "<speak>Right. It can name a principal, actions, resources, and optional conditions.</speak>"
+      },
+      "ja": {
+        "text": "はい。Principal、Action、Resource、必要ならConditionを指定できます。",
+        "ssml": "<speak>はい。Principal、Action、Resource、必要ならConditionを指定できます。</speak>"
+      },
+      "awsConcept": "Principal / Action / Resource / Condition"
+    },
+    {
+      "id": 11,
+      "speaker": "man",
+      "en": {
+        "text": "What if one policy says Allow and another says Deny?",
+        "ssml": "<speak>What if one policy says Allow and another says Deny?</speak>"
+      },
+      "ja": {
+        "text": "一方のPolicyがAllowで、別のPolicyがDenyならどうなります？",
+        "ssml": "<speak>一方のPolicyがAllowで、別のPolicyがDenyならどうなります？</speak>"
+      },
+      "awsConcept": "Allow / Deny"
+    },
+    {
+      "id": 12,
+      "speaker": "woman",
+      "en": {
+        "text": "An explicit Deny wins. AWS is very serious about the word no.",
+        "ssml": "<speak>An explicit Deny wins. AWS is very serious about the word no.</speak>"
+      },
+      "ja": {
+        "text": "明示的なDenyが優先されます。AWSは「ダメ」という言葉にはかなり厳格です。",
+        "ssml": "<speak>明示的なDenyが優先されます。AWSは「ダメ」という言葉にはかなり厳格です。</speak>"
+      },
+      "awsConcept": "Explicit Deny"
+    },
+    {
+      "id": 13,
+      "speaker": "man",
+      "en": {
+        "text": "Good. Then I should just give the role AdministratorAccess and avoid surprises.",
+        "ssml": "<speak>Good. Then I should just give the role AdministratorAccess and avoid surprises.</speak>"
+      },
+      "ja": {
+        "text": "なるほど。ではRoleにAdministratorAccessを付けて、面倒を避ければいいですね。",
+        "ssml": "<speak>なるほど。ではRoleにAdministratorAccessを付けて、面倒を避ければいいですね。</speak>"
+      },
+      "awsConcept": "Least Privilege"
+    },
+    {
+      "id": 14,
+      "speaker": "woman",
+      "en": {
+        "text": "Wrong surprise. Use least privilege: grant only the actions and resources needed.",
+        "ssml": "<speak>Wrong surprise. Use least privilege: grant only the actions and resources needed.</speak>"
+      },
+      "ja": {
+        "text": "それは危険な方の驚きです。最小権限として、必要なActionとResourceだけを許可してください。",
+        "ssml": "<speak>それは危険な方の驚きです。最小権限として、必要なActionとResourceだけを許可してください。</speak>"
+      },
+      "awsConcept": "Least Privilege",
+      "vocabulary": [
+        "least privilege",
+        "the minimum you need"
+      ]
+    },
+    {
+      "id": 15,
+      "speaker": "man",
+      "en": {
+        "text": "Where does IAM Identity Center fit into this hotel?",
+        "ssml": "<speak>Where does IAM Identity Center fit into this hotel?</speak>"
+      },
+      "ja": {
+        "text": "では、IAM Identity Centerはこのホテルの例だと何に当たります？",
+        "ssml": "<speak>では、IAM Identity Centerはこのホテルの例だと何に当たります？</speak>"
+      },
+      "awsConcept": "IAM Identity Center"
+    },
+    {
+      "id": 16,
+      "speaker": "woman",
+      "en": {
+        "text": "Think of it as the workforce front desk. People sign in once and get assigned AWS account and role access.",
+        "ssml": "<speak>Think of it as the workforce front desk. People sign in once and get assigned AWS account and role access.</speak>"
+      },
+      "ja": {
+        "text": "従業員向けフロントデスクのようなものです。一度サインインし、割り当てられたAWSアカウントやRoleへアクセスします。",
+        "ssml": "<speak>従業員向けフロントデスクのようなものです。一度サインインし、割り当てられたAWSアカウントやRoleへアクセスします。</speak>"
+      },
+      "awsConcept": "IAM Identity Center / Workforce Access"
+    },
+    {
+      "id": 17,
+      "speaker": "man",
+      "en": {
+        "text": "So if Identity Center fits, I should avoid long-term IAM users for every employee?",
+        "ssml": "<speak>So if Identity Center fits, I should avoid long-term IAM users for every employee?</speak>"
+      },
+      "ja": {
+        "text": "つまりIdentity Centerが適するなら、従業員ごとの長期IAM Userは避けるべきですね？",
+        "ssml": "<speak>つまりIdentity Centerが適するなら、従業員ごとの長期IAM Userは避けるべきですね？</speak>"
+      },
+      "awsConcept": "IAM Identity Center / IAM User"
+    },
+    {
+      "id": 18,
+      "speaker": "woman",
+      "en": {
+        "text": "That's the usual direction for workforce access. Now, here is your actual hotel key.",
+        "ssml": "<speak>That's the usual direction for workforce access. Now, here is your actual hotel key.</speak>"
+      },
+      "ja": {
+        "text": "従業員アクセスでは通常その方向です。では、本物のホテルのキーをどうぞ。",
+        "ssml": "<speak>従業員アクセスでは通常その方向です。では、本物のホテルのキーをどうぞ。</speak>"
+      },
+      "awsConcept": "Temporary Credentials"
+    },
+    {
+      "id": 19,
+      "speaker": "man",
+      "en": {
+        "text": "Temporary, I hope?",
+        "ssml": "<speak>Temporary, I hope?</speak>"
+      },
+      "ja": {
+        "text": "一時的ですよね？",
+        "ssml": "<speak>一時的ですよね？</speak>"
+      },
+      "awsConcept": "Temporary Credentials",
+      "vocabulary": [
+        "I hope?"
+      ]
+    },
+    {
+      "id": 20,
+      "speaker": "woman",
+      "en": {
+        "text": "Yes. It expires at eleven. Least privilege also means you don't get the minibar.",
+        "ssml": "<speak>Yes. It expires at eleven. Least privilege also means you don't get the minibar.</speak>"
+      },
+      "ja": {
+        "text": "はい。11時で失効します。最小権限なので、ミニバーへのアクセス権もありません。",
+        "ssml": "<speak>はい。11時で失効します。最小権限なので、ミニバーへのアクセス権もありません。</speak>"
+      },
+      "awsConcept": "Least Privilege / Expiration"
+    },
+    {
+      "id": 21,
+      "speaker": "man",
+      "en": {
+        "text": "Finally, a security policy my wallet can support.",
+        "ssml": "<speak>Finally, a security policy my wallet can support.</speak>"
+      },
+      "ja": {
+        "text": "ついに、私の財布も支持できるセキュリティポリシーですね。",
+        "ssml": "<speak>ついに、私の財布も支持できるセキュリティポリシーですね。</speak>"
+      },
+      "awsConcept": "Punchline"
+    }
+  ]
+}

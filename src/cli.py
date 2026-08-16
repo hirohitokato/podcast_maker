@@ -29,7 +29,7 @@ def load_environment() -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Generate English/Japanese dialogue audio with Amazon Polly and build a two-section MP3."
+        description="Generate an English-learning dialogue MP3 with Amazon Polly."
     )
     parser.add_argument("input", type=Path, help="Episode JSON file")
     parser.add_argument(
@@ -102,6 +102,7 @@ def main() -> int:
             episode_output_dir,
             episode_output_dir / (args.final_name or f"{args.input.stem}.mp3"),
             background_music_path=background_music_path,
+            jingle_path=assets_dir / "jingle.mp3",
             shared_work_dir=args.output / ".work",
             guide_paths=guide_paths,
         )

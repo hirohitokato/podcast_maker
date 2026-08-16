@@ -50,3 +50,4 @@ class CliTests(unittest.TestCase):
         self.assertEqual(Path("output/example/example.mp3"), build.call_args.args[2])
         self.assertEqual(Path("output/.work"), build.call_args.kwargs["shared_work_dir"])
         self.assertEqual({}, build.call_args.kwargs["guide_paths"])
+        self.assertEqual(cli.PROJECT_DIR / "assets" / "jingle.mp3", build.call_args.kwargs["jingle_path"])
