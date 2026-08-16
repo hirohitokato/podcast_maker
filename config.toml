@@ -1,0 +1,56 @@
+[audio]
+provider = "amazon-polly"
+outputFormat = "mp3"
+sampleRate = "24000"
+backgroundMusic = "assets/bgm.mp3"
+
+[audio.voices.woman]
+languageCode = "en-US"
+voiceId = "Joanna"
+engine = "generative"
+
+[audio.voices.man]
+languageCode = "en-US"
+voiceId = "Matthew"
+engine = "generative"
+
+[audio.voices.woman-ja]
+languageCode = "ja-JP"
+voiceId = "Tomoko"
+engine = "neural"
+
+[audio.voices.man-ja]
+languageCode = "ja-JP"
+voiceId = "Takumi"
+engine = "neural"
+
+[audio.voices.guide]
+languageCode = "ja-JP"
+voiceId = "Kazuha"
+engine = "neural"
+
+[audio.profiles.normal]
+rate = "100%"
+
+[audio.profiles.slow]
+rate = "85%"
+
+[audio.profiles.ja]
+rate = "110%"
+
+[audio.profiles.guide]
+rate = "110%"
+
+[audio.pause]
+betweenSpeakersMs = 350
+betweenTranslationMs = 500
+beforeConversationMs = 1000
+betweenSectionsMs = 2000
+
+[audio.guides]
+"0-introduction" = "こんにちは。今日も楽しく英会話でAWSを学びましょう！今回のトピックは%sです。まずは通常のスピードでお聞きください。"
+"1-bilingual" = "続いて、同じ会話を英語と日本語で、交互に聞いてみましょう。"
+"2-slow" = "次に、ゆっくりとしたスピードで聞いてみましょう。"
+"3-shadowing" = "今度は、シャドーイングをしてみましょう。英語の音声に続いて、同じ内容を繰り返してください。"
+"4-normal" = "最後に、もう一度通常のスピードで聞いてみましょう。"
+"5-conclusion" = "いかがでしたか？毎日続けて、少しずつ上達していきましょう。お疲れ様でした！"

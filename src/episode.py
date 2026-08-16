@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+import tomllib
 from pathlib import Path
 from typing import Any
 
@@ -30,65 +31,14 @@ def load_episode(path: Path) -> dict[str, Any]:
     return data
 
 
-def _strip_jsonc_comments(content: str) -> str:
-    result: list[str] = []
-    in_string = escaped = False
-    index = 0
-    while index < len(content):
-        char = content[index]
-        next_char = content[index + 1] if index + 1 < len(content) else ""
-        if in_string:
-            result.append(char)
-            if char == '"' and not escaped:
-                in_string = False
-            escaped = char == "\\" and not escaped
-        elif char == '"':
-            in_string = True
-            result.append(char)
-        elif char == "/" and next_char == "/":
-            index = content.find("\n", index)
-            if index == -1:
-                break
-            result.append("\n")
-        elif char == "/" and next_char == "*":
-            index = content.find("*/", index + 2)
-            if index == -1:
-                raise ValueError("Unterminated comment in settings file")
-            index += 1
-        else:
-            result.append(char)
-        index += 1
-    return "".join(result)
-
-
-def _strip_jsonc_trailing_commas(content: str) -> str:
-    result: list[str] = []
-    in_string = escaped = False
-    for index, char in enumerate(content):
-        if in_string:
-            result.append(char)
-            if char == '"' and not escaped:
-                in_string = False
-            escaped = char == "\\" and not escaped
-            continue
-        if char == '"':
-            in_string = True
-            result.append(char)
-        elif char == "," and content[index + 1 :].lstrip().startswith(("}", "]")):
-            continue
-        else:
-            result.append(char)
-    return "".join(result)
-
-
 def load_settings(path: Path) -> dict[str, Any]:
     if not path.exists():
         raise FileNotFoundError(f"Settings file not found: {path}")
 
-    content = _strip_jsonc_comments(path.read_text(encoding="utf-8"))
-    data = json.loads(_strip_jsonc_trailing_commas(content))
+    with path.open("rb") as f:
+        data = tomllib.load(f)
     if not isinstance(data.get("audio"), dict):
-        raise ValueError("Settings JSONC must contain an 'audio' object")
+        raise ValueError("Settings TOML must contain an 'audio' table")
     return data
 
 

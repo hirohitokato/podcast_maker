@@ -21,11 +21,11 @@ class EpisodeTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "rate"):
             apply_japanese_rate("<speak>日本語</speak>", {"profiles": {"ja": {"rate": "fast"}}})
 
-    def test_load_settings_accepts_jsonc_comments_and_trailing_commas(self) -> None:
+    def test_load_settings_reads_toml(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "settings.jsonc"
+            path = Path(directory) / "config.toml"
             path.write_text(
-                '{\n  // shared audio settings\n  "audio": {"url": "https://example.com",},\n}',
+                '[audio]\nurl = "https://example.com"\n',
                 encoding="utf-8",
             )
 

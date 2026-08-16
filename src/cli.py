@@ -55,7 +55,7 @@ def parse_args() -> argparse.Namespace:
         "--bgm",
         type=Path,
         default=None,
-        help="Background music file. Overrides audio.backgroundMusic in settings.jsonc.",
+        help="Background music file. Overrides audio.backgroundMusic in config.toml.",
     )
     parser.add_argument(
         "--final-name",
@@ -70,7 +70,7 @@ def main() -> int:
     try:
         load_environment()
         episode = load_episode(args.input)
-        episode["audio"] = load_settings(PROJECT_DIR / "settings.jsonc")["audio"]
+        episode["audio"] = load_settings(PROJECT_DIR / "config.toml")["audio"]
         assets_dir = PROJECT_DIR / "assets"
         configured_bgm = episode["audio"].get("backgroundMusic")
         if args.bgm:
@@ -83,7 +83,7 @@ def main() -> int:
                 else PROJECT_DIR / configured_path
             )
         else:
-            raise ValueError("audio.backgroundMusic must be configured in settings.jsonc")
+            raise ValueError("audio.backgroundMusic must be configured in config.toml")
         rule_paths = [
             *[(rule if rule.is_absolute() else Path.cwd() / rule) for rule in args.pls],
             assets_dir / "aws-terms-ja.pls",
