@@ -35,6 +35,10 @@ uv run podcast episodes/episode_00.json --output output
 
 `--bgm path/to/music.mp3`で、その実行だけBGMを差し替えられます。`--force`はPolly音声キャッシュを無視して再生成します。
 
+## サンプル
+
+[sampleディレクトリ](./sample/)のjsonファイル、mp3ファイルを参照してください。
+
 ## 設定と台本
 
 共有設定は`config.toml`で変更します。Pollyの声と速度、ポーズ、BGM、会話・SEの音量、アルバム名・作成者、ガイド文を設定できます。
