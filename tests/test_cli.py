@@ -1,5 +1,7 @@
+import io
 import sys
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
@@ -34,7 +36,9 @@ class CliTests(unittest.TestCase):
             },
         )()
         episode = {"audio": {}}
+        log = io.StringIO()
         with (
+            redirect_stdout(log),
             patch.object(cli, "parse_args", return_value=args),
             patch.object(cli, "load_environment"),
             patch.object(cli, "load_episode", return_value=episode),
@@ -51,3 +55,4 @@ class CliTests(unittest.TestCase):
         self.assertEqual(Path("output/.work"), build.call_args.kwargs["shared_work_dir"])
         self.assertEqual({}, build.call_args.kwargs["guide_paths"])
         self.assertEqual(cli.PROJECT_DIR / "assets" / "jingle.mp3", build.call_args.kwargs["jingle_path"])
+        self.assertIn("[1/3] Generating dialogue and guide audio", log.getvalue())

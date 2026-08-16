@@ -90,6 +90,7 @@ def main() -> int:
         ]
         rule_paths = list(dict.fromkeys(path.resolve() for path in rule_paths))
         episode_output_dir = args.output / args.input.stem
+        print("[1/3] Generating dialogue and guide audio")
         guide_paths = generate_dialogue_audio(
             episode,
             episode_output_dir / ".work",

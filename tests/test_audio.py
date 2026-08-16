@@ -1,6 +1,9 @@
+import io
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from src import audio
@@ -13,6 +16,7 @@ class AudioTests(unittest.TestCase):
                 "outputFormat": "mp3",
                 "sampleRate": "24000",
                 "pause": {"beforeConversationMs": 1000, "betweenSectionsMs": 1200},
+                "foregroundVolume": {"dialogue": 0.25, "soundEffect": 0.5},
             },
             "dialogue": [
                 {"id": "001", "speaker": "woman"},
@@ -42,10 +46,16 @@ class AudioTests(unittest.TestCase):
             background.touch()
             jingle.touch()
             calls: list[list[Path]] = []
+            final_volumes: list[float] = []
             shadow_calls: list[list[Path]] = []
 
-            def concatenate(inputs: list[Path], output: Path, *, sample_rate: str) -> None:
+            def concatenate(
+                inputs: list[Path], output: Path, *, sample_rate: str,
+                volumes: list[float] | None = None,
+            ) -> None:
                 calls.append(inputs)
+                if volumes is not None:
+                    final_volumes.extend(volumes)
                 output.write_bytes(b"audio")
 
             def create_silence(path: Path, **_: object) -> None:
@@ -61,15 +71,17 @@ class AudioTests(unittest.TestCase):
                 patch.object(audio, "create_shadowing_section", side_effect=shadow),
                 patch.object(audio, "mix_background_music") as mix,
             ):
-                audio.build_final_audio(
-                    episode,
-                    output_dir,
-                    output_dir / "final.mp3",
-                    background_music_path=background,
-                    jingle_path=jingle,
-                    shared_work_dir=shared_work_dir,
-                    guide_paths=guides,
-                )
+                log = io.StringIO()
+                with redirect_stdout(log):
+                    audio.build_final_audio(
+                        episode,
+                        output_dir,
+                        output_dir / "final.mp3",
+                        background_music_path=background,
+                        jingle_path=jingle,
+                        shared_work_dir=shared_work_dir,
+                        guide_paths=guides,
+                    )
 
             self.assertEqual(
                 [
@@ -106,6 +118,11 @@ class AudioTests(unittest.TestCase):
             self.assertTrue((shared_work_dir / "silence_24000_1000ms.mp3.sha256").exists())
             self.assertFalse(any(work_dir.glob("silence_*.mp3")))
             self.assertEqual(background, mix.call_args.args[2])
+            self.assertEqual(4, final_volumes.count(0.5))
+            self.assertEqual(5, final_volumes.count(0.25))
+            self.assertIn("[2/3] Building learning sections", log.getvalue())
+            self.assertIn("[4/4] Shadowing practice", log.getvalue())
+            self.assertIn("[3/3] Mixing background music", log.getvalue())
             self.assertEqual(
                 [
                     work_dir / "001_woman_en_slow.mp3",
@@ -149,7 +166,10 @@ class AudioTests(unittest.TestCase):
             def create_silence(path: Path, **_: object) -> None:
                 path.write_bytes(b"silence")
 
-            def concatenate(inputs: list[Path], output: Path, *, sample_rate: str) -> None:
+            def concatenate(
+                inputs: list[Path], output: Path, *, sample_rate: str,
+                volumes: list[float] | None = None,
+            ) -> None:
                 calls.append(output)
                 output.write_bytes(b"|".join(path.read_bytes() for path in inputs))
 
@@ -173,10 +193,12 @@ class AudioTests(unittest.TestCase):
                 audio.build_final_audio(episode, output_dir, output_dir / "final.mp3", **kwargs)
                 guides["0-introduction"].write_bytes(b"updated guide")
                 audio.build_final_audio(episode, output_dir, output_dir / "final.mp3", **kwargs)
+                episode["audio"]["foregroundVolume"] = {"soundEffect": 0.25}
+                audio.build_final_audio(episode, output_dir, output_dir / "final.mp3", **kwargs)
 
-            self.assertEqual(14, len(calls))
+            self.assertEqual(19, len(calls))
             foregrounds = list((root / ".work").glob("final_foreground_*.mp3"))
-            self.assertEqual(2, len(foregrounds))
+            self.assertEqual(3, len(foregrounds))
             self.assertTrue(all(Path(str(path) + ".sha256").exists() for path in foregrounds))
 
     def test_background_volume_expression_fades_in_and_out_at_the_end(self) -> None:
@@ -189,3 +211,22 @@ class AudioTests(unittest.TestCase):
         self.assertIn("(0.3+(0.5-0.3)*(t-7.0))*between(t\\,7.0\\,8.0)", expression)
         self.assertIn("0.5*between(t\\,8.0\\,10.0)", expression)
         self.assertIn("0.5*(12.0-t)/2*between(t\\,10.0\\,12.0)", expression)
+
+    def test_foreground_volume_rejects_invalid_values(self) -> None:
+        for value in ("0.5", -0.1, float("inf"), True):
+            with self.assertRaisesRegex(ValueError, "foregroundVolume.soundEffect"):
+                audio._foreground_volume({"foregroundVolume": {"soundEffect": value}}, "soundEffect", 0.5)
+
+    def test_final_concat_applies_per_input_volume(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            inputs = [root / "dialogue.mp3", root / "jingle.mp3"]
+            for path in inputs:
+                path.touch()
+            with patch.object(audio.subprocess, "run", return_value=SimpleNamespace(returncode=0, stderr="")) as run:
+                audio.concatenate_mp3_files(inputs, root / "output.mp3", sample_rate="24000", volumes=[1.0, 0.5])
+
+        command = run.call_args.args[0]
+        filter_graph = command[command.index("-filter_complex") + 1]
+        self.assertIn("[1:a]volume=0.5[audio1]", filter_graph)
+        self.assertIn("concat=n=2:v=0:a=1[output]", filter_graph)

@@ -3,6 +3,12 @@ provider = "amazon-polly"
 outputFormat = "mp3"
 sampleRate = "24000"
 backgroundMusic = "assets/bgm.mp3"
+albumName = "英会話でAWS!"
+author = "Kato Hirohito"
+
+[audio.foregroundVolume]
+dialogue = 1.0
+soundEffect = 0.5
 
 [audio.voices.woman]
 languageCode = "en-US"

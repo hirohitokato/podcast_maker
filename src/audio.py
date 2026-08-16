@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import subprocess
 import tempfile
 from pathlib import Path
@@ -65,15 +66,51 @@ def create_silence_file(path: Path, *, duration_ms: int, sample_rate: str) -> No
 
 
 def concatenate_mp3_files(
-    input_files: list[Path], output_path: Path, *, sample_rate: str
+    input_files: list[Path], output_path: Path, *, sample_rate: str,
+    volumes: list[float] | None = None,
 ) -> None:
     if not input_files:
         raise ValueError("No input audio files were specified")
     for path in input_files:
         if not path.exists():
             raise FileNotFoundError(f"Audio file not found: {path}")
-
+    if volumes is not None and len(volumes) != len(input_files):
+        raise ValueError("Audio input and volume counts must match")
     output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if volumes is not None and any(volume != 1 for volume in volumes):
+        filters = [
+            f"[{index}:a]volume={volume}[audio{index}]"
+            for index, volume in enumerate(volumes)
+        ]
+        filters.append(
+            "".join(f"[audio{index}]" for index in range(len(input_files)))
+            + f"concat=n={len(input_files)}:v=0:a=1[output]"
+        )
+        result = subprocess.run(
+            [
+                "ffmpeg",
+                "-y",
+                *[argument for path in input_files for argument in ("-i", str(path))],
+                "-filter_complex",
+                ";".join(filters),
+                "-map",
+                "[output]",
+                "-codec:a",
+                "libmp3lame",
+                "-ar",
+                sample_rate,
+                "-ac",
+                "1",
+                str(output_path),
+            ],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            raise RuntimeError("FFmpeg failed to concatenate audio files:\n" + result.stderr)
+        return
+
     with tempfile.NamedTemporaryFile(
         mode="w", encoding="utf-8", suffix=".txt", delete=False
     ) as f:
@@ -200,6 +237,21 @@ def _background_volume_expression(segments: list[tuple[float, float]]) -> str:
     return "+".join(terms)
 
 
+def _foreground_volume(audio_config: dict[str, Any], key: str, default: float) -> float:
+    configured = audio_config.get("foregroundVolume", {})
+    if not isinstance(configured, dict):
+        raise ValueError("audio.foregroundVolume must be a table")
+    volume = configured.get(key, default)
+    if (
+        isinstance(volume, bool)
+        or not isinstance(volume, (int, float))
+        or not math.isfinite(volume)
+        or volume < 0
+    ):
+        raise ValueError(f"audio.foregroundVolume.{key} must be a non-negative number")
+    return float(volume)
+
+
 def mix_background_music(
     foreground_path: Path,
     output_path: Path,
@@ -257,6 +309,8 @@ def build_final_audio(
     guide_paths: dict[str, Path],
 ) -> None:
     audio_config = episode["audio"]
+    dialogue_volume = _foreground_volume(audio_config, "dialogue", 1.0)
+    sound_effect_volume = _foreground_volume(audio_config, "soundEffect", 0.5)
     output_format = audio_config.get("outputFormat", "mp3")
     sample_rate = audio_config.get("sampleRate", "24000")
     pause_config = audio_config.get("pause", {})
@@ -318,9 +372,14 @@ def build_final_audio(
         guides = {key: guide_paths[key] for key in required_guides}
     except KeyError as e:
         raise ValueError(f"Generated guide is missing: {e.args[0]}") from e
+    print("\n[2/3] Building learning sections")
+    print("  [1/4] Normal-speed conversation")
     concatenate_mp3_files(english, section1, sample_rate=sample_rate)
+    print("  [2/4] Bilingual conversation")
     concatenate_mp3_files(bilingual, section2, sample_rate=sample_rate)
+    print("  [3/4] Slow-speed conversation")
     concatenate_mp3_files(slow, section3, sample_rate=sample_rate)
+    print("  [4/4] Shadowing practice")
     create_shadowing_section(slow_lines, section4, sample_rate=sample_rate)
     volume_paths = [
         (silence["opening"], 0.5),
@@ -328,22 +387,22 @@ def build_final_audio(
         (silence["conversation"], 0.3),
         (section1, 0.07),
         (silence["section"], 0.2),
-        (jingle_path, 0.01),
+        (jingle_path, 0.1),
         (guides["1-bilingual"], 0.3),
         (silence["conversation"], 0.3),
         (section2, 0.07),
         (silence["section"], 0.2),
-        (jingle_path, 0.01),
+        (jingle_path, 0.1),
         (guides["2-slow"], 0.3),
         (silence["conversation"], 0.3),
         (section3, 0.07),
         (silence["section"], 0.2),
-        (jingle_path, 0.01),
+        (jingle_path, 0.1),
         (guides["3-shadowing"], 0.3),
         (silence["conversation"], 0.3),
         (section4, 0.07),
         (silence["section"], 0.2),
-        (jingle_path, 0.01),
+        (jingle_path, 0.1),
         (guides["4-normal"], 0.3),
         (silence["conversation"], 0.3),
         (section1, 0.07),
@@ -351,22 +410,36 @@ def build_final_audio(
         (guides["5-conclusion"], 0.3),
         (silence["closing"], 0.4),
     ]
+    foreground_volumes = [
+        sound_effect_volume
+        if path == jingle_path
+        else dialogue_volume
+        if path in (section1, section2, section3, section4)
+        else 1.0
+        for path, _ in volume_paths
+    ]
     foreground_key = _cache_key(
         {
             "version": CACHE_VERSION,
             "kind": "foreground",
             "sampleRate": sample_rate,
             "inputs": [(_file_hash(path), volume) for path, volume in volume_paths],
+            "foregroundVolumes": foreground_volumes,
         }
     )
     foreground = shared_work_dir / f"final_foreground_{foreground_key}.mp3"
     if not _cache_is_valid(foreground, foreground_key):
+        print("  Building final foreground audio")
         concatenate_mp3_files(
             [path for path, _ in volume_paths],
             foreground,
             sample_rate=sample_rate,
+            volumes=foreground_volumes,
         )
         _save_cache_key(foreground, foreground_key)
+    else:
+        print("  Using cached foreground audio")
+    print("\n[3/3] Mixing background music")
     mix_background_music(
         foreground,
         final_output_path,
