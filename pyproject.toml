@@ -10,7 +10,7 @@ dependencies = [
 ]
 
 [project.scripts]
-podcast = "src.cli:main"
+make = "src.cli:main"
 build_prompt = "src.tools.build_prompt:main"
 test = "tests.runner:main"
 
