@@ -35,6 +35,21 @@ uv run podcast episodes/episode_00.json --output output
 
 `--bgm path/to/music.mp3`で、その実行だけBGMを差し替えられます。`--force`はPolly音声キャッシュを無視して再生成します。
 
+## 補助ツール: プロンプト生成ツール
+
+AWSサービスを題材にした台本生成用プロンプトを作成します。このプロンプトをChatGPTなどに入力することで、台本JSONを生成してくれます。
+
+```bash
+uv run build_prompt
+```
+
+"AWS Lambda"などのAWSサービス名を入力すると、`assets/prompt_template-aws.md` に
+`assets/episode.schema.json` を埋め込んだプロンプトが標準出力に表示されます。ファイルに保存する場合は次のように実行します。
+
+```bash
+uv run build_prompt > prompt.md
+```
+
 ## サンプル
 
 [sampleディレクトリ](./sample/)のjsonファイル、mp3ファイルを参照してください。

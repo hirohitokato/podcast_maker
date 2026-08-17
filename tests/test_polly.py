@@ -112,6 +112,7 @@ class PollyTests(unittest.TestCase):
                 "guides": guides,
             },
             "dialogue": [],
+            "abstract": {"en": "An AWS episode.", "ja": "AWSのエピソードです。"},
             "english_learning": {"keywords": ["S3", "CloudFront"]},
         }
         client = FakeGuidePolly()
@@ -137,7 +138,7 @@ class PollyTests(unittest.TestCase):
             self.assertEqual(6, len(client.synthesize_calls))
             self.assertEqual("Kazuha", client.synthesize_calls[0]["VoiceId"])
             self.assertEqual("ja-JP", client.synthesize_calls[0]["LanguageCode"])
-            self.assertIn("Topics: S3, CloudFront", client.synthesize_calls[0]["Text"])
+            self.assertIn("Topics: AWSのエピソードです。", client.synthesize_calls[0]["Text"])
             self.assertEqual(root / "episode" / ".work" / "guide_0-introduction.mp3", paths["0-introduction"])
             self.assertEqual(root / ".work" / "guide_1-bilingual.mp3", paths["1-bilingual"])
             self.assertTrue(Path(str(paths["0-introduction"]) + ".sha256").exists())
@@ -180,6 +181,7 @@ class PollyTests(unittest.TestCase):
                 {"id": "001", "speaker": "woman", "en": {"ssml": "<speak>Hello</speak>"}, "ja": {"ssml": "<speak>こんにちは</speak>"}},
                 {"id": "002", "speaker": "man", "en": {"ssml": "<speak>Hi</speak>"}, "ja": {"ssml": "<speak>やあ</speak>"}},
             ],
+            "abstract": {"en": "An AWS dialogue.", "ja": "AWSの会話です。"},
             "english_learning": {"keywords": ["S3"]},
         }
         client = FakeGuidePolly()

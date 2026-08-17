@@ -248,17 +248,14 @@ def _guide_text(episode: dict[str, Any], key: str, template: str) -> str:
         return template
     if template.count("%s") != 1:
         raise ValueError("audio.guides.0-introduction must contain exactly one %s")
-    english_learning = episode.get("english_learning")
-    if not isinstance(english_learning, dict):
-        raise ValueError("Episode english_learning must be an object")
-    services = english_learning.get("keywords")
-    if (
-        not isinstance(services, list)
-        or not services
-        or not all(isinstance(service, str) and service for service in services)
-    ):
-        raise ValueError("Episode english_learning.keywords must be a non-empty list of strings")
-    return template.replace("%s", ", ".join(services))
+    abstract = episode.get("abstract")
+    if not isinstance(abstract, dict):
+        raise ValueError("Episode abstract must be an object")
+    abstract_ja = abstract.get("ja")
+    if not isinstance(abstract_ja, str) or not abstract_ja:
+        raise ValueError("Episode abstract.ja must be a non-empty string")
+
+    return template.replace("%s", abstract_ja)
 
 
 def generate_dialogue_audio(

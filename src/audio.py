@@ -9,8 +9,8 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-
 CACHE_VERSION = 1
+MP3_BITRATE = "64k"
 
 
 def _hash_path(audio_path: Path) -> Path:
@@ -34,7 +34,9 @@ def _cache_is_valid(audio_path: Path, expected_key: str) -> bool:
     if not audio_path.exists() or audio_path.stat().st_size == 0:
         return False
     try:
-        return _hash_path(audio_path).read_text(encoding="utf-8").strip() == expected_key
+        return (
+            _hash_path(audio_path).read_text(encoding="utf-8").strip() == expected_key
+        )
     except OSError:
         return False
 
@@ -57,6 +59,8 @@ def create_silence_file(path: Path, *, duration_ms: int, sample_rate: str) -> No
         "libmp3lame",
         "-ar",
         sample_rate,
+        "-b:a",
+        MP3_BITRATE,
         "-ac",
         "1",
         str(path),
@@ -67,7 +71,10 @@ def create_silence_file(path: Path, *, duration_ms: int, sample_rate: str) -> No
 
 
 def concatenate_mp3_files(
-    input_files: list[Path], output_path: Path, *, sample_rate: str,
+    input_files: list[Path],
+    output_path: Path,
+    *,
+    sample_rate: str,
     volumes: list[float] | None = None,
 ) -> None:
     if not input_files:
@@ -101,6 +108,8 @@ def concatenate_mp3_files(
                 "libmp3lame",
                 "-ar",
                 sample_rate,
+                "-b:a",
+                MP3_BITRATE,
                 "-ac",
                 "1",
                 str(output_path),
@@ -109,7 +118,9 @@ def concatenate_mp3_files(
             text=True,
         )
         if result.returncode != 0:
-            raise RuntimeError("FFmpeg failed to concatenate audio files:\n" + result.stderr)
+            raise RuntimeError(
+                "FFmpeg failed to concatenate audio files:\n" + result.stderr
+            )
         return
 
     with tempfile.NamedTemporaryFile(
@@ -135,6 +146,8 @@ def concatenate_mp3_files(
                 "libmp3lame",
                 "-ar",
                 sample_rate,
+                "-b:a",
+                MP3_BITRATE,
                 "-ac",
                 "1",
                 str(output_path),
@@ -185,6 +198,8 @@ def create_shadowing_section(
             "libmp3lame",
             "-ar",
             sample_rate,
+            "-b:a",
+            MP3_BITRATE,
             "-ac",
             "1",
             str(output_path),
@@ -193,7 +208,9 @@ def create_shadowing_section(
         text=True,
     )
     if result.returncode != 0:
-        raise RuntimeError("FFmpeg failed to create shadowing section:\n" + result.stderr)
+        raise RuntimeError(
+            "FFmpeg failed to create shadowing section:\n" + result.stderr
+        )
 
 
 def _audio_duration(path: Path) -> float:
@@ -271,7 +288,9 @@ def _episode_metadata(episode: dict[str, Any]) -> dict[str, str]:
         or not services
         or not all(isinstance(service, str) and service for service in services)
     ):
-        raise ValueError("Episode english_learning.keywords must be a non-empty list of strings")
+        raise ValueError(
+            "Episode english_learning.keywords must be a non-empty list of strings"
+        )
     abstract = episode.get("abstract")
     if not isinstance(abstract, dict):
         raise ValueError("Episode abstract must be an object")
@@ -294,7 +313,12 @@ def _id3v23_frame(frame_id: str, value: str) -> bytes:
         payload = value.encode("ascii")
     else:
         payload = b"\x01" + value.encode("utf-16")
-    return frame_id.encode("ascii") + len(payload).to_bytes(4, "big") + b"\x00\x00" + payload
+    return (
+        frame_id.encode("ascii")
+        + len(payload).to_bytes(4, "big")
+        + b"\x00\x00"
+        + payload
+    )
 
 
 def _syncsafe(value: int) -> bytes:
@@ -302,11 +326,16 @@ def _syncsafe(value: int) -> bytes:
 
 
 def _write_id3v23(path: Path, metadata: dict[str, str]) -> None:
-    frames = b"".join(_id3v23_frame(frame_id, value) for frame_id, value in metadata.items())
+    frames = b"".join(
+        _id3v23_frame(frame_id, value) for frame_id, value in metadata.items()
+    )
     tag = b"ID3\x03\x00\x00" + _syncsafe(len(frames)) + frames
-    with path.open("rb") as source, tempfile.NamedTemporaryFile(
-        mode="wb", dir=path.parent, delete=False
-    ) as destination:
+    with (
+        path.open("rb") as source,
+        tempfile.NamedTemporaryFile(
+            mode="wb", dir=path.parent, delete=False
+        ) as destination,
+    ):
         destination.write(tag)
         shutil.copyfileobj(source, destination)
         temporary_path = Path(destination.name)
@@ -353,6 +382,8 @@ def mix_background_music(
             "libmp3lame",
             "-ar",
             sample_rate,
+            "-b:a",
+            MP3_BITRATE,
             "-ac",
             "1",
             str(output_path),
@@ -403,6 +434,7 @@ def build_final_audio(
                 "version": CACHE_VERSION,
                 "kind": "silence",
                 "sampleRate": sample_rate,
+                "bitRate": MP3_BITRATE,
                 "durationMs": pauses[name],
             }
         )
@@ -417,9 +449,13 @@ def build_final_audio(
     slow_lines: list[Path] = []
     for index, line in enumerate(dialogue, start=1):
         line_id = str(line.get("id", index)).zfill(3)
-        en_path = episode_work_dir / f"{line_id}_{line['speaker']}_en_normal.{output_format}"
+        en_path = (
+            episode_work_dir / f"{line_id}_{line['speaker']}_en_normal.{output_format}"
+        )
         ja_path = episode_work_dir / f"{line_id}_ja_normal.{output_format}"
-        slow_path = episode_work_dir / f"{line_id}_{line['speaker']}_en_slow.{output_format}"
+        slow_path = (
+            episode_work_dir / f"{line_id}_{line['speaker']}_en_slow.{output_format}"
+        )
         english.append(en_path)
         bilingual.extend([en_path, silence["translation"], ja_path])
         slow.append(slow_path)
@@ -434,7 +470,12 @@ def build_final_audio(
     section3 = output_dir / "section_03_en_slow.mp3"
     section4 = output_dir / "section_04_en_shadowing.mp3"
     required_guides = (
-        "0-introduction", "1-bilingual", "2-slow", "3-shadowing", "4-normal", "5-conclusion",
+        "0-introduction",
+        "1-bilingual",
+        "2-slow",
+        "3-shadowing",
+        "4-normal",
+        "5-conclusion",
     )
     try:
         guides = {key: guide_paths[key] for key in required_guides}
@@ -479,11 +520,15 @@ def build_final_audio(
         (silence["closing"], 0.4),
     ]
     foreground_volumes = [
-        sound_effect_volume
-        if path == jingle_path
-        else dialogue_volume
-        if path in (section1, section2, section3, section4)
-        else 1.0
+        (
+            sound_effect_volume
+            if path == jingle_path
+            else (
+                dialogue_volume
+                if path in (section1, section2, section3, section4)
+                else 1.0
+            )
+        )
         for path, _ in volume_paths
     ]
     foreground_key = _cache_key(

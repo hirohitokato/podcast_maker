@@ -272,14 +272,16 @@ class AudioTests(unittest.TestCase):
                 metadata=metadata,
                 sample_rate="24000",
             )
-            tags = json.loads(
+            probe = json.loads(
                 subprocess.run(
-                    ["ffprobe", "-v", "error", "-show_entries", "format_tags", "-of", "json", str(output)],
+                    ["ffprobe", "-v", "error", "-show_entries", "format=bit_rate:format_tags", "-of", "json", str(output)],
                     check=True,
                     capture_output=True,
                     text=True,
                 ).stdout
-            )["format"]["tags"]
+            )["format"]
+            tags = probe["tags"]
+            bit_rate = int(probe["bit_rate"])
             raw = output.read_bytes()
 
         self.assertEqual(metadata["TIT2"], tags["title"])
@@ -296,6 +298,7 @@ class AudioTests(unittest.TestCase):
         self.assertNotIn("composer", tags)
         self.assertNotIn("track", tags)
         self.assertNotIn("date", tags)
+        self.assertGreaterEqual(bit_rate, 64745)
 
     def test_final_concat_applies_per_input_volume(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -310,3 +313,30 @@ class AudioTests(unittest.TestCase):
         filter_graph = command[command.index("-filter_complex") + 1]
         self.assertIn("[1:a]volume=0.5[audio1]", filter_graph)
         self.assertIn("concat=n=2:v=0:a=1[output]", filter_graph)
+        self.assertEqual("64k", command[command.index("-b:a") + 1])
+
+    def test_ffmpeg_outputs_use_configured_mp3_bitrate(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            input_path = root / "input.mp3"
+            input_path.touch()
+            with patch.object(
+                audio.subprocess,
+                "run",
+                return_value=SimpleNamespace(returncode=0, stderr=""),
+            ) as run:
+                audio.create_silence_file(
+                    root / "silence.mp3", duration_ms=1000, sample_rate="24000"
+                )
+                silence_command = run.call_args.args[0]
+                audio.concatenate_mp3_files(
+                    [input_path], root / "section.mp3", sample_rate="24000"
+                )
+                section_command = run.call_args.args[0]
+                audio.create_shadowing_section(
+                    [input_path], root / "shadowing.mp3", sample_rate="24000"
+                )
+                shadowing_command = run.call_args.args[0]
+
+        for command in (silence_command, section_command, shadowing_command):
+            self.assertEqual("64k", command[command.index("-b:a") + 1])
