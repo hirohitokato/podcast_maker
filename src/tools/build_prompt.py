@@ -21,6 +21,8 @@ def main() -> int:
         print("ERROR: AWSサービス名を入力してください。", file=sys.stderr)
         return 1
 
+    print(" - プロンプト作成を開始します。", file=sys.stderr)
+
     try:
         prompt = TEMPLATE_PATH.read_text(encoding="utf-8")
         schema = SCHEMA_PATH.read_text(encoding="utf-8")
@@ -31,6 +33,8 @@ def main() -> int:
     sys.stdout.write(
         prompt.replace("{{AWS_SERVICE}}", service).replace("{{EPISODE_SCHEMA}}", schema)
     )
+    print(" - プロンプトが完成しました。この内容をLLMに入力し、台本を作成してください。", file=sys.stderr)
+
     return 0
 
 
